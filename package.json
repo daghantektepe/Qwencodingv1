@@ -1,0 +1,48 @@
+{
+    "name":  "openscriv",
+    "version":  "0.1.0",
+    "description":  "A local-first desktop writing studio inspired by Scrivener.",
+    "private":  true,
+    "main":  "electron/main.cjs",
+    "type":  "module",
+    "scripts":  {
+                    "dev":  "vite --host 127.0.0.1",
+                    "build":  "tsc --noEmit \u0026\u0026 vite build",
+                    "preview":  "vite preview --host 127.0.0.1",
+                    "test":  "vitest run",
+                    "test:watch":  "vitest",
+                    "electron:dev":  "concurrently \"npm run dev\" \"wait-on http://127.0.0.1:5173 \u0026\u0026 cross-env NODE_ENV=development electron .\"",
+                    "electron:start":  "electron ."
+                },
+    "keywords":  [
+                     "writing",
+                     "scrivener",
+                     "electron",
+                     "react",
+                     "local-first"
+                 ],
+    "author":  "OpenScriv contributors",
+    "license":  "MIT",
+    "dependencies":  {
+                         "@vitejs/plugin-react":  "latest",
+                         "vite":  "latest",
+                         "typescript":  "latest",
+                         "react":  "latest",
+                         "react-dom":  "latest",
+                         "lucide-react":  "latest"
+                     },
+    "devDependencies":  {
+                            "@testing-library/jest-dom":  "latest",
+                            "@testing-library/react":  "latest",
+                            "@types/node":  "latest",
+                            "@types/react":  "latest",
+                            "@types/react-dom":  "latest",
+                            "concurrently":  "latest",
+                            "cross-env":  "latest",
+                            "electron":  "latest",
+                            "jsdom":  "latest",
+                            "vitest":  "latest",
+                            "wait-on":  "latest",
+                            "@testing-library/user-event":  "latest"
+                        }
+}

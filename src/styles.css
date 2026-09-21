@@ -1,0 +1,128 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f4f1ea;
+  color: #27241f;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 960px; }
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; }
+
+.app {
+  display: grid;
+  grid-template-columns: 280px minmax(420px, 1fr) 300px;
+  height: 100vh;
+  background: #f4f1ea;
+  color: #27241f;
+}
+.app.dark { background: #1f2428; color: #f5f0e7; color-scheme: dark; }
+
+.sidebar, .inspector {
+  background: #ebe4d8;
+  border-right: 1px solid #d7ccbc;
+  padding: 16px;
+  overflow: auto;
+}
+.inspector { border-right: 0; border-left: 1px solid #d7ccbc; }
+.dark .sidebar, .dark .inspector { background: #292f33; border-color: #3b444b; }
+
+.brand, .toolbar, .panel-heading, .toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.brand { margin-bottom: 16px; }
+.brand strong { display: block; font-size: 18px; }
+.brand span { display: block; color: #6b6255; font-size: 13px; margin-top: 2px; }
+.dark .brand span { color: #bdb4a8; }
+
+.icon-button {
+  width: 36px;
+  height: 36px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid #cbbfac;
+  background: #fffaf2;
+  color: inherit;
+  border-radius: 6px;
+}
+.dark .icon-button { background: #343c42; border-color: #46515a; }
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #cbbfac;
+  border-radius: 6px;
+  background: #fffaf2;
+  margin-bottom: 12px;
+}
+.search-box input { border: 0; outline: 0; background: transparent; width: 100%; }
+.dark .search-box { background: #343c42; border-color: #46515a; }
+
+.binder-list { display: grid; gap: 3px; }
+.binder-item {
+  width: 100%;
+  min-height: 34px;
+  border: 0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+}
+.binder-item.active { background: #d8e4dc; }
+.dark .binder-item.active { background: #3a4a42; }
+
+.editor-shell { display: grid; grid-template-rows: auto 1fr; min-width: 0; }
+.toolbar { padding: 14px 18px; border-bottom: 1px solid #d7ccbc; background: #fffaf2; }
+.dark .toolbar { background: #242a2f; border-color: #3b444b; }
+.title-input { border: 0; outline: 0; background: transparent; color: inherit; font-size: 22px; font-weight: 700; width: 100%; }
+.toolbar-actions span { color: #6b6255; white-space: nowrap; }
+.dark .toolbar-actions span { color: #c5beb4; }
+
+.editor {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  resize: none;
+  padding: 36px clamp(28px, 7vw, 96px);
+  background: #fffdf8;
+  color: inherit;
+  font: 18px/1.7 Georgia, "Times New Roman", serif;
+}
+.dark .editor { background: #20262a; }
+
+.corkboard { padding: 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; align-content: start; }
+.index-card { min-height: 130px; padding: 14px; border-radius: 7px; border: 1px solid #d1c5b4; background: #fffaf2; text-align: left; color: inherit; }
+.index-card span { display: block; margin-top: 10px; color: #6b6255; }
+.dark .index-card { background: #2d343a; border-color: #46515a; }
+.dark .index-card span { color: #c5beb4; }
+
+.inspector { display: grid; align-content: start; gap: 14px; }
+.panel-heading { justify-content: flex-start; }
+.inspector label { display: grid; gap: 6px; font-size: 13px; font-weight: 700; }
+.inspector input, .inspector textarea, .inspector select {
+  width: 100%;
+  border: 1px solid #cbbfac;
+  border-radius: 6px;
+  background: #fffaf2;
+  color: inherit;
+  padding: 9px 10px;
+  font-weight: 400;
+}
+.inspector textarea { min-height: 92px; resize: vertical; }
+.dark .inspector input, .dark .inspector textarea, .dark .inspector select { background: #343c42; border-color: #46515a; }
+
+.progress-block { display: grid; gap: 7px; padding-top: 4px; }
+.progress-track { height: 9px; border-radius: 999px; background: #d7ccbc; overflow: hidden; }
+.progress-track div { height: 100%; background: #327a5d; }
+.outline-count { color: #6b6255; font-size: 13px; }
+.dark .outline-count { color: #c5beb4; }
