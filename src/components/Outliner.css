@@ -1,0 +1,121 @@
+.outliner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: var(--text-primary, #3c382e);
+  background: var(--bg-elevated, #ffffff);
+  font-size: 13px;
+}
+
+.outliner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border, #d9d4c8);
+  background: var(--bg-panel, #fbfaf7);
+}
+
+.outliner-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.outliner-toolbar {
+  position: relative;
+}
+
+.outliner-columns-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--border, #d9d4c8);
+  background: var(--bg-elevated, #ffffff);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.outliner-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: var(--bg-elevated, #ffffff);
+  border: 1px solid var(--border-strong, #b9b09c);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  padding: 8px 12px;
+  z-index: 10;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.outliner-table-wrap {
+  flex: 1;
+  overflow: auto;
+}
+
+.outliner-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.outliner-table th {
+  padding: 8px 12px;
+  background: var(--bg-panel, #fbfaf7);
+  border-bottom: 2px solid var(--border, #d9d4c8);
+  font-weight: 600;
+  font-size: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.outliner-row {
+  border-bottom: 1px solid var(--border, #d9d4c8);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.outliner-row:hover {
+  background: var(--bg-hover, #f2eee3);
+}
+
+.outliner-row--selected {
+  background: var(--bg-selected, #dfd8c6) !important;
+}
+
+.outliner-row--folder {
+  font-weight: 600;
+}
+
+.outliner-cell {
+  padding: 8px 12px;
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.outliner-cell--title {
+  display: flex;
+  align-items: center;
+}
+
+.outliner-indent {
+  display: inline-block;
+}
+
+.outliner-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  background: var(--bg-hover, #f2eee3);
+}
+
+.outliner-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-muted, #8a7f66);
+}

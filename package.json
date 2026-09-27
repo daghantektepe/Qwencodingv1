@@ -9,10 +9,11 @@
                     "dev":  "vite --host 127.0.0.1",
                     "build":  "tsc --noEmit \u0026\u0026 vite build",
                     "preview":  "vite preview --host 127.0.0.1",
-                    "test":  "vitest run",
-                    "test:watch":  "vitest",
-                    "electron:dev":  "concurrently \"npm run dev\" \"wait-on http://127.0.0.1:5173 \u0026\u0026 cross-env NODE_ENV=development electron .\"",
-                    "electron:start":  "electron ."
+                    "test": "vitest run",
+                    "test:watch": "vitest",
+                    "test:electron": "electron test_electron_runtime.cjs",
+                    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://127.0.0.1:5173 && cross-env NODE_ENV=development electron .\"",
+                    "electron:start": "electron ."
                 },
     "keywords":  [
                      "writing",

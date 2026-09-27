@@ -1,0 +1,70 @@
+.wordcount {
+  padding: 14px;
+  color: var(--text-primary, #3c382e);
+  font-size: 13px;
+}
+
+.wordcount-header {
+  margin-bottom: 14px;
+}
+
+.wordcount-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.wordcount-section {
+  margin-bottom: 18px;
+}
+
+.wordcount-section-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted, #8a7f66);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.wc-stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border, #d9d4c8);
+}
+
+.wc-stat-label {
+  color: var(--text-secondary, #6b6455);
+}
+
+.wc-stat-val {
+  font-weight: 600;
+}
+
+.wc-progress {
+  height: 8px;
+  background: var(--bg-hover, #f2eee3);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 8px;
+  position: relative;
+}
+
+.wc-progress__bar {
+  height: 100%;
+  background: var(--accent, #7a6c4f);
+  transition: width 0.3s ease;
+}
+
+.wc-progress__bar--done {
+  background: var(--success, #2e6b3e);
+}
+
+.wc-progress__label {
+  display: block;
+  font-size: 11px;
+  text-align: right;
+  margin-top: 4px;
+  color: var(--text-muted, #8a7f66);
+}

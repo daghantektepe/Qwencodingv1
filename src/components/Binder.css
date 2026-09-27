@@ -1,0 +1,97 @@
+.binder {
+  width: 250px;
+  height: 100%;
+  background-color: #f9f9f9;
+  border-right: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden;
+}
+
+.binder-header {
+  padding: 10px 15px;
+  border-bottom: 1px solid #eee;
+  background-color: #fff;
+}
+
+.binder-header__title {
+  margin: 0;
+  font-size: 14px;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.binder-tree {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.binder-node {
+  margin: 0;
+}
+
+.binder-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.1s ease;
+}
+
+.binder-row:hover {
+  background-color: #eef2ff;
+}
+
+.binder-row--selected {
+  background-color: #dbeafe;
+  color: #1e40af;
+  font-weight: 500;
+}
+
+.binder-icon {
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+.binder-caret {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  line-height: 12px;
+  text-align: center;
+  margin-right: 4px;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+  font-size: 10px;
+  color: #666;
+}
+
+.binder-caret--open {
+  transform: rotate(90deg);
+}
+
+.binder-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+
+.binder-children {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.binder-empty {
+  padding: 20px;
+  text-align: center;
+  color: #888;
+  font-size: 13px;
+}
