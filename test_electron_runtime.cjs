@@ -1,5 +1,26 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
+
+const testDataDir = process.env.OPENSCRIV_TEST_DATA_DIR;
+if (!testDataDir) throw new Error('OPENSCRIV_TEST_DATA_DIR is required');
+const testUserDataDir = path.join(testDataDir, 'userData');
+fs.mkdirSync(testUserDataDir, { recursive: true });
+app.setPath('documents', testDataDir);
+app.setPath('userData', testUserDataDir);
+
+function finish(code) {
+  setTimeout(() => {
+    app.exit(code);
+  }, 250);
+}
+
+ipcMain.handle('save-document', (_event, payload) => {
+  if (!payload?.projectId || !payload?.docId || typeof payload.content !== 'string') {
+    throw new Error('Invalid save-document payload');
+  }
+  return { ok: true };
+});
 
 app.whenReady().then(() => {
   console.log('[TEST] Electron app ready!');
@@ -34,29 +55,36 @@ app.whenReady().then(() => {
             hasBrand: document.body.innerText.includes('OpenScriv'),
             hasElectronApi: typeof window.electronAPI !== 'undefined',
             hasApi: typeof window.api !== 'undefined',
-            hasBinder: document.body.innerText.includes('Binder'),
+            hasBinder: document.body.innerText.toLowerCase().includes('binder'),
             hasEditor: document.body.innerText.includes('Editör')
           })
         `)
         .then((res) => {
           console.log('[TEST] DOM & IPC Bridge Validation:', JSON.stringify(res));
-          if (!res.hasElectronApi || !res.hasBrand || !res.hasRoot || res.rootHtmlLength === 0) {
-            console.error('[TEST FAILED] Missing API, Root, or Brand in rendered DOM');
-            app.exit(1);
+          if (
+            !res.hasElectronApi ||
+            !res.hasBrand ||
+            !res.hasRoot ||
+            res.rootHtmlLength === 0 ||
+            !res.hasBinder ||
+            !res.hasEditor
+          ) {
+            console.error('[TEST FAILED] Missing required UI or Electron bridge elements');
+            finish(1);
           } else {
             console.log('[TEST SUCCESS] Electron runtime and rendered UI 100% verified!');
-            app.exit(0);
+            finish(0);
           }
         })
         .catch((err) => {
           console.error('[TEST ERROR]', err);
-          app.exit(1);
+          finish(1);
         });
     }, 1000);
   });
 
   win.webContents.on('did-fail-load', (e, code, desc) => {
     console.error('[TEST FAILED LOAD]', code, desc);
-    app.exit(1);
+    finish(1);
   });
 });

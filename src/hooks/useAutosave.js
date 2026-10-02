@@ -22,10 +22,14 @@ import { useState, useEffect, useRef, useCallback } from 'react';
  */
 
 // Varsayilan kaydedici: Electron API varsa onu, yoksa localStorage'i kullanir.
-async function defaultSaveFn(docId, value) {
+export async function defaultSaveFn(docId, value) {
   if (typeof window !== 'undefined') {
     if (window.electronAPI && typeof window.electronAPI.saveDocument === 'function') {
-      await window.electronAPI.saveDocument(docId, value);
+      await window.electronAPI.saveDocument({
+        projectId: 'default',
+        docId,
+        content: value,
+      });
       return;
     }
     // Gelistirme/tarayici ortami fallback: tamamen yerel kalir, bulut yoktur.
