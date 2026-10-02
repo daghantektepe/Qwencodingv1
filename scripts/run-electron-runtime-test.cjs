@@ -8,7 +8,7 @@ const electronBinary = require('electron');
 const testDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'openscriv-electron-test-'));
 const child = spawn(
   electronBinary,
-  ['--in-process-gpu', path.join(projectRoot, 'test_electron_runtime.cjs')],
+  [path.join(projectRoot, 'test_electron_runtime.cjs')],
   {
     cwd: projectRoot,
     env: { ...process.env, OPENSCRIV_TEST_DATA_DIR: testDataDir },

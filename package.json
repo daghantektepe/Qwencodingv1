@@ -12,8 +12,8 @@
                     "test": "vitest run",
                     "test:watch": "vitest",
                     "test:electron": "node scripts/run-electron-runtime-test.cjs",
-                    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://127.0.0.1:5173 && cross-env NODE_ENV=development electron --in-process-gpu .\"",
-                    "electron:start": "electron --in-process-gpu ."
+                    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://127.0.0.1:5173 && cross-env NODE_ENV=development electron .\"",
+                    "electron:start": "electron ."
                 },
     "keywords":  [
                      "writing",

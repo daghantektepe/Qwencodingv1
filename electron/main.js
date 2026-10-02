@@ -32,12 +32,15 @@ async function ensureDir(dirPath) {
 
 function createWindow() {
   const isDev = process.env.NODE_ENV === 'development' || Boolean(process.env.VITE_DEV_SERVER_URL);
+  const isDebug = isDev || process.env.OPENSCRIV_DEBUG === '1' || process.argv.includes('--debug');
 
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 820,
     minWidth: 960,
     minHeight: 640,
+    show: false,
+    backgroundColor: '#f5f2ea',
     title: 'OpenScriv - Masaüstü Yazı Stüdyosu',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -48,12 +51,71 @@ function createWindow() {
     titleBarStyle: 'default',
   });
 
+  // Beyaz ekran kalmasını önlemek için: pencere çizilmeye hazır olduğunda göster
+  let isShown = false;
+  const showWindow = () => {
+    if (!isShown && mainWindow && !mainWindow.isDestroyed()) {
+      isShown = true;
+      mainWindow.show();
+    }
+  };
+
+  mainWindow.once('ready-to-show', showWindow);
+
+  // Donanım gecikmesi veya GPU beklemesinde pencerenin sonsuza dek gizli kalmasını önle
+  setTimeout(showWindow, 1200);
+
+  // F12 veya Ctrl+Shift+I ile geliştirici araçlarını (DevTools) aç/kapat
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (
+      input.key === 'F12' ||
+      ((input.control || input.meta) && input.shift && input.key.toLowerCase() === 'i')
+    ) {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.toggleDevTools();
+        event.preventDefault();
+      }
+    }
+  });
+
+  // Renderer konsol mesajlarını terminale aktar
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    const levels = ['DEBUG', 'LOG', 'WARN', 'ERROR'];
+    const lvlName = levels[level] || 'LOG';
+    const srcName = sourceId ? path.basename(sourceId) : 'renderer';
+    console.log(`[Renderer ${lvlName}] ${message} (${srcName}:${line})`);
+  });
+
+  // Sayfa yükleme hatasını yakala ve kurtar
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.warn(`[main] did-fail-load: ${errorCode} (${errorDescription}) URL: ${validatedURL}`);
+    const distPath = path.join(__dirname, '../dist/index.html');
+    if (validatedURL.includes('5173') && distPath) {
+      console.log('[main] Geliştirme sunucusuna ulaşılamadı, yerel derleme (dist/index.html) yükleniyor...');
+      mainWindow.loadFile(distPath).catch((err) => {
+        console.error('[main] dist/index.html yüklenemedi:', err);
+      });
+    }
+  });
+
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[main] Renderer süreci kapandı/çöktü:', details);
+  });
+
+  const distPath = path.join(__dirname, '../dist/index.html');
   if (isDev && process.env.VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
+    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL).catch(() => mainWindow.loadFile(distPath));
   } else if (isDev) {
-    mainWindow.loadURL('http://127.0.0.1:5173');
+    mainWindow.loadURL('http://127.0.0.1:5173').catch(() => {
+      console.log('[main] Dev port 5173 kapalı, yerel dosyadan başlatılıyor...');
+      mainWindow.loadFile(distPath);
+    });
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    mainWindow.loadFile(distPath);
+  }
+
+  if (isDebug) {
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
 
   mainWindow.on('closed', () => {
