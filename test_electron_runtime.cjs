@@ -55,7 +55,7 @@ app.whenReady().then(() => {
             hasBrand: document.body.innerText.includes('OpenScriv'),
             hasElectronApi: typeof window.electronAPI !== 'undefined',
             hasApi: typeof window.api !== 'undefined',
-            hasBinder: document.body.innerText.toLowerCase().includes('binder'),
+            hasBinder: !!document.querySelector('aside[aria-label="Binder"]'),
             hasEditor: document.body.innerText.includes('Editör')
           })
         `)
