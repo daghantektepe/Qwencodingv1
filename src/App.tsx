@@ -26,11 +26,20 @@ import FocusMode from './components/FocusMode.jsx';
 // @ts-ignore
 import CommandPalette from './components/CommandPalette.jsx';
 // @ts-ignore
-import { useTheme } from './theme.js';
+import ThemeCustomizer from './components/ThemeCustomizer.jsx';
+// @ts-ignore
+import {
+  useTheme,
+  THEME_CARDS,
+  FONT_CHOICES,
+  LINE_HEIGHT_OPTIONS,
+  FONT_SIZE_RANGE,
+} from './theme.js';
 // @ts-ignore
 import { useProjectState, DEFAULT_METADATA } from './state/project.js';
 // @ts-ignore
 import { countWords } from './utils/count.js';
+import { Palette } from 'lucide-react';
 
 import {
   FileText,
@@ -140,7 +149,7 @@ function findFirstDoc(nodes: any[]): any | null {
 }
 
 export function App() {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme, toggleTheme, typography, setTypography } = useTheme();
 
   // Disk kalıcılığı callback'i
   const handlePersist = useCallback((stampedProject: any) => {
@@ -180,6 +189,7 @@ export function App() {
   const [compileOpen, setCompileOpen] = useState(false);
   const [focusModeOpen, setFocusModeOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [themeCustomizerOpen, setThemeCustomizerOpen] = useState(false);
 
   // Açık sekmeler (TabBar)
   const [openTabs, setOpenTabs] = useState<{ id: string; title: string; dirty?: boolean }[]>(() => [
@@ -343,8 +353,15 @@ export function App() {
       run: () => setCompileOpen(true),
     },
     {
+      id: 'customize-theme',
+      title: 'Tema ve Tipografi Ayarları (Oxford, Midnight, vb.)',
+      group: 'Arayüz',
+      shortcut: 'Ctrl+,',
+      run: () => setThemeCustomizerOpen(true),
+    },
+    {
       id: 'toggle-theme',
-      title: 'Temayı Değiştir (Açık / Koyu)',
+      title: 'Temayı Değiştir (Hızlı Açık / Koyu)',
       group: 'Arayüz',
       shortcut: 'Ctrl+T',
       run: () => toggleTheme(),
@@ -397,15 +414,26 @@ export function App() {
             <strong>OpenScriv</strong>
             <span>{project.name || 'OpenScriv Projesi'}</span>
           </div>
-          <button
-            className="icon-button"
-            type="button"
-            aria-label="Toggle theme"
-            title="Temayı Değiştir"
-            onClick={toggleTheme}
-          >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
+          <div style={{ display: 'flex', gap: '4px' }}>
+            <button
+              className="icon-button"
+              type="button"
+              aria-label="Theme settings"
+              title="Lüks Tema & Tipografi Ayarları"
+              onClick={() => setThemeCustomizerOpen(true)}
+            >
+              <Palette size={17} />
+            </button>
+            <button
+              className="icon-button"
+              type="button"
+              aria-label="Toggle theme"
+              title="Temayı Değiştir"
+              onClick={toggleTheme}
+            >
+              {theme === 'dark' || theme === 'midnight-velvet' || theme === 'emerald-scholar' ? <Sun size={17} /> : <Moon size={17} />}
+            </button>
+          </div>
         </div>
 
         {/* Hızlı Butonlar */}
@@ -723,6 +751,21 @@ export function App() {
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
         commands={commands as any}
+      />
+
+      {/* Lüks Tema & Tipografi Özelleştirme */}
+      {/* @ts-ignore */}
+      <ThemeCustomizer
+        open={themeCustomizerOpen}
+        onClose={() => setThemeCustomizerOpen(false)}
+        themeName={theme}
+        themes={THEME_CARDS}
+        onThemeChange={(newTheme: string) => setTheme(newTheme)}
+        typography={typography}
+        fontChoices={FONT_CHOICES}
+        lineHeightOptions={LINE_HEIGHT_OPTIONS}
+        fontSizeRange={FONT_SIZE_RANGE}
+        onTypographyChange={setTypography}
       />
     </div>
   );
