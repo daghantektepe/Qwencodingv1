@@ -63,7 +63,11 @@ import {
   Columns,
   Command,
   Maximize2,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
+// @ts-ignore
+import { soundEngine } from './utils/sound.js';
 
 const INITIAL_TREE = [
   {
@@ -198,6 +202,12 @@ export function App() {
   const [scratchpadOpen, setScratchpadOpen] = useState(false);
   const [zoom, setZoom] = useState(100);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(() => soundEngine.isEnabled());
+
+  const handleToggleSound = useCallback(() => {
+    const next = soundEngine.toggle();
+    setSoundEnabled(next);
+  }, []);
 
   // Scratchpad notları (localStorage kalıcı)
   const [scratchpadNotes, setScratchpadNotes] = useState<any[]>(() => {
@@ -416,6 +426,13 @@ export function App() {
       run: () => setThemeCustomizerOpen(true),
     },
     {
+      id: 'toggle-sound',
+      title: soundEnabled ? 'Daktilo Tuş Seslerini Kapat' : 'Daktilo Tuş Seslerini Aç (Web Audio)',
+      group: 'Ses ve Efektler',
+      shortcut: 'Alt+S',
+      run: handleToggleSound,
+    },
+    {
       id: 'toggle-theme',
       title: 'Temayı Değiştir (Hızlı Açık / Koyu)',
       group: 'Arayüz',
@@ -592,6 +609,15 @@ export function App() {
               style={{ width: 'auto', padding: '0 10px', fontSize: '13px', gap: '6px' }}
             >
               <Command size={14} /> Komutlar
+            </button>
+            <button
+              type="button"
+              className={`icon-button ${soundEnabled ? 'active' : ''}`}
+              title={soundEnabled ? 'Daktilo Tuş Seslerini Kapat (Alt+S)' : 'Daktilo Tuş Seslerini Aç (Alt+S / Mekanik Vuruş)'}
+              onClick={handleToggleSound}
+              style={{ width: 'auto', padding: '0 10px', fontSize: '13px', gap: '6px', background: soundEnabled ? 'var(--bg-selected, #dfd8c6)' : undefined }}
+            >
+              {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />} {soundEnabled ? 'Ses Açık' : 'Ses'}
             </button>
             <button
               type="button"

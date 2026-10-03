@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import './Editor.css';
+import { soundEngine } from '../utils/sound.js';
 
 /**
  * Editor — Faz 19: Ana editör ve tipografi cilası (odak modu & daktilo deneyimi).
@@ -139,6 +140,15 @@ export default function Editor({
         };
         run();
         return;
+      }
+
+      // Ses Efektleri (Web Audio Daktilo Motoru)
+      if (e.key === 'Enter') {
+        soundEngine.playReturn();
+      } else if (e.key === 'Backspace' || e.key === 'Delete') {
+        soundEngine.playDelete();
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        soundEngine.playKey();
       }
 
       // Tab → 2 bosluk girinti (odak kaybetmeden)
