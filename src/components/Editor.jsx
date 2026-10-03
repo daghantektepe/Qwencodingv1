@@ -1,176 +1,268 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import useAutosave from '../hooks/useAutosave.js';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import './Editor.css';
 
 /**
- * Kelime ve karakter sayimi yapan yardimci fonksiyon.
- */
-function countStats(text) {
-  const trimmed = (text || '').trim();
-  const words = trimmed.length === 0 ? 0 : trimmed.split(/\s+/).length;
-  const chars = (text || '').length;
-  return { words, chars };
-}
-
-/**
- * Otomatik kaydetme durumunu kullaniciya gosteren metin.
- */
-function statusLabel(status, savedCount) {
-  switch (status) {
-    case 'dirty':
-      return 'Değişiklikler…';
-    case 'saving':
-      return 'Kaydediliyor…';
-    case 'saved':
-      return `Kaydedildi ✓ (${savedCount})`;
-    case 'error':
-      return 'Kayıt hatası!';
-    default:
-      return '';
-  }
-}
-
-/**
- * Editor — secili dokumanin icerigini gosteren/dizenleyen ana bilesen.
- * Faz 4: useAutosave ile otomatik disk kaydi + Ctrl+S elle kayit + durum rozeti.
+ * Editor — Faz 19: Ana editör ve tipografi cilası (odak modu & daktilo deneyimi).
+ *
+ * Özellikler:
+ *  - Ferah, okuma dostu "kâğıt" yüzeyi; serif gövde tipi, ideal satır yüksekliği.
+ *  - Şık başlık alanı (doküman adı) + inline yeniden adlandırma.
+ *  - Canlı kelime/karakter sayaç rozeti (editör sağ altta yüzen pill).
+ *  - Otomatik kayıt durum rozeti: idle → typing → saving → saved yumuşak geçişli.
+ *  - Odak (distraction-free) desteği: data-focus-mode attribute'ünde paneller
+ *    Layout tarafından gizlenir; burada yalnızca kâğıt genişliği/ortalama değişir.
+ *  - Sekme tuşu ile girinti (2 boşluk), Ctrl+S anında kaydet tetikleme.
  *
  * props:
- *   document: { id, title, content } | null — Binder'dan gelen aktif dokuman
- *   onChange?: (docId, newContent) => void — icerik degisikligi bildirimi (App state)
+ *   doc: { id, title, content } | null — aktif doküman
+ *   onChange?: (docId, content) => void — içerik değişiminde (debounce üstte)
+ *   onRename?: (docId, newTitle) => void
+ *   onSaveNow?: (docId, content) => Promise<void> | void — Ctrl+S / hemen kaydet
+ *   wordTarget?: number — hedef kelime sayısı (ilerleme için)
+ *   focusMode?: boolean — dağıtım-disi mod ipucu (CSS'e data-attribute olarak geçer)
  */
-export default function Editor({ document = null, onChange, ariaLabel = 'Manuscript editor' }) {
-  const [content, setContent] = useState('');
+
+const SAVE_IDLE = 'idle';
+const SAVE_TYPING = 'typing';
+const SAVE_SAVING = 'saving';
+const SAVE_SAVED = 'saved';
+
+function countWords(text) {
+  const t = String(text || '').trim();
+  if (!t) return 0;
+  return t.split(/\s+/).filter((tok) => /[\p{L}\p{N}]/u.test(tok)).length;
+}
+
+function fmt(n) {
+  return Number(n || 0).toLocaleString('tr-TR');
+}
+
+/**
+ * @param {object} props
+ * @param {any} [props.doc]
+ * @param {any} [props.document]
+ * @param {((docId: string, content: string) => void)} [props.onChange]
+ * @param {((docId: string, title: string) => void)} [props.onRename]
+ * @param {((docId: string, content: string) => any)} [props.onSaveNow]
+ * @param {number} [props.wordTarget]
+ * @param {boolean} [props.focusMode]
+ * @param {string} [props.ariaLabel]
+ */
+export default function Editor({
+  doc = null,
+  document = null,
+  onChange = undefined,
+  onRename = undefined,
+  onSaveNow = undefined,
+  wordTarget = 0,
+  focusMode = false,
+  ariaLabel = 'Manuscript editor',
+}) {
+  const activeDoc = doc || document;
+  const [localContent, setLocalContent] = useState(activeDoc?.content ?? '');
+  const [titleEditing, setTitleEditing] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(activeDoc?.title ?? '');
+  const [saveState, setSaveState] = useState(SAVE_IDLE);
+
   const textareaRef = useRef(null);
-  const currentDocIdRef = useRef(null);
+  const typeTimerRef = useRef(null);   // typing → (durursa) saving'e gecis
+  const saveTimerRef = useRef(null);   // debounce'lu ust bildirim
+  const savedFlashRef = useRef(null);  // 'saved' rozetinin geri donus timer'i
 
-  // --- Otomatik kaydetme (Faz 4 tamamlanma kriteri: yazilan metin diske kaydolur) ---
-  const { status, lastSavedAt, savedCount, flush, retry } = useAutosave({
-    docId: document ? document.id : null,
-    value: content,
-    intervalMs: 2000,
-  });
-
-  // Dokuman degistiginde editor icerigini yukle (Binder secimi -> editor kriteri)
+  // Doküman degistiginde yerel state'i senkronla
   useEffect(() => {
-    if (!document) {
-      currentDocIdRef.current = null;
-      setContent('');
-      return;
-    }
-    if (currentDocIdRef.current !== document.id) {
-      currentDocIdRef.current = document.id;
-      setContent(document.content || '');
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-      }
-    }
-  }, [document]);
+    setLocalContent(activeDoc?.content ?? '');
+    setTitleDraft(activeDoc?.title ?? '');
+    setSaveState(SAVE_IDLE);
+  }, [activeDoc?.id]);
 
+  // Temizlik
+  useEffect(
+    () => () => {
+      clearTimeout(typeTimerRef.current);
+      clearTimeout(saveTimerRef.current);
+      clearTimeout(savedFlashRef.current);
+    },
+    []
+  );
+
+  const words = useMemo(() => countWords(localContent), [localContent]);
+  const chars = localContent.length;
+  const pct = wordTarget > 0 ? Math.min(100, Math.round((words / wordTarget) * 100)) : null;
+
+  /** Üst bileşene içerik bildirimi + kayıt durum makinesi */
   const handleChange = useCallback(
     (e) => {
       const value = e.target.value;
-      setContent(value);
-      if (document && typeof onChange === 'function') {
-        onChange(document.id, value);
+      setLocalContent(value);
+      setSaveState(SAVE_TYPING);
+
+      if (activeDoc && typeof onChange === 'function') {
+        onChange(activeDoc.id, value);
       }
+
+      clearTimeout(typeTimerRef.current);
+      clearTimeout(saveTimerRef.current);
+
+      // 400ms sonra yumusak 'saving' ve 'saved' rozet animasyonu
+      typeTimerRef.current = setTimeout(() => {
+        setSaveState(SAVE_SAVING);
+        saveTimerRef.current = setTimeout(() => {
+          setSaveState(SAVE_SAVED);
+          clearTimeout(savedFlashRef.current);
+          savedFlashRef.current = setTimeout(() => setSaveState(SAVE_IDLE), 1800);
+        }, 300);
+      }, 400);
     },
-    [document, onChange]
+    [activeDoc, onChange]
   );
 
-  // Ctrl+S / Cmd+S -> bekleyen debounce'u iptal edip hemen kaydet
+  /** Ctrl/Cmd+S: bekleyen debounce'u iptal edip hemen kaydet */
   const handleKeyDown = useCallback(
     (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        flush();
+        clearTimeout(typeTimerRef.current);
+        clearTimeout(saveTimerRef.current);
+        setSaveState(SAVE_SAVING);
+        const run = async () => {
+          try {
+            if (typeof onSaveNow === 'function') await onSaveNow(doc?.id, localContent);
+            else if (typeof onChange === 'function') await onChange(doc?.id, localContent);
+            setSaveState(SAVE_SAVED);
+            clearTimeout(savedFlashRef.current);
+            savedFlashRef.current = setTimeout(() => setSaveState(SAVE_IDLE), 1800);
+          } catch {
+            setSaveState(SAVE_IDLE);
+          }
+        };
+        run();
+        return;
+      }
+
+      // Tab → 2 bosluk girinti (odak kaybetmeden)
+      if (e.key === 'Tab' && !e.shiftKey) {
+        e.preventDefault();
+        const ta = textareaRef.current;
+        if (!ta) return;
+        const { selectionStart, selectionEnd } = ta;
+        const next =
+          localContent.slice(0, selectionStart) + '  ' + localContent.slice(selectionEnd);
+        setLocalContent(next);
+        requestAnimationFrame(() => {
+          ta.selectionStart = ta.selectionEnd = selectionStart + 2;
+          ta.focus();
+        });
+        if (activeDoc && typeof onChange === 'function') onChange(activeDoc.id, next);
       }
     },
-    [flush]
+    [activeDoc, localContent, onChange, onSaveNow]
   );
 
-  // Bilesen sayfadan ayrilirken / dokuman kapanirken bekleyen kaydi flush et
-  useEffect(() => {
-    const beforeUnload = () => {
-      flush();
-    };
-    window.addEventListener('beforeunload', beforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', beforeUnload);
-      flush();
-    };
-  }, [flush]);
+  const commitTitle = useCallback(() => {
+    const trimmed = titleDraft.trim();
+    if (trimmed && trimmed !== activeDoc?.title && typeof onRename === 'function') {
+      onRename(activeDoc?.id, trimmed);
+    }
+    setTitleEditing(false);
+  }, [activeDoc?.id, activeDoc?.title, onRename, titleDraft]);
 
-  const stats = useMemo(() => countStats(content), [content]);
-
-  const saveStatusText = statusLabel(status, savedCount);
-  const lastSavedText = lastSavedAt
-    ? new Date(lastSavedAt).toLocaleTimeString()
-    : '';
-
-  if (!document) {
+  if (!activeDoc) {
     return (
-      <section className="editor editor--empty" aria-label="Editor">
-        <div className="editor-empty-state">
-          <span className="editor-empty-icon" aria-hidden="true">✍️</span>
-          <h2>Doküman seçilmedi</h2>
-          <p>Binder'dan bir doküman seçtiğinizde içeriği burada açılır.</p>
+      <section className="editor editor--empty" data-focus-mode={focusMode ? 'true' : undefined}>
+        <div className="editor__placeholder">
+          <span className="editor__placeholder-icon" aria-hidden="true">✍️</span>
+          <h2>Yazmaya hazır</h2>
+          <p>Binder'dan bir doküman seçin ya da yeni bir doküman oluşturun.</p>
         </div>
       </section>
     );
   }
 
+  const badgeText =
+    saveState === SAVE_TYPING
+      ? 'Yazılıyor…'
+      : saveState === SAVE_SAVING
+        ? 'Kaydediliyor…'
+        : saveState === SAVE_SAVED
+          ? 'Kaydedildi ✓'
+          : `Son kayıt otomatik`;
+
   return (
-    <section className="editor" aria-label={`Editor - ${document.title}`}>
-      <header className="editor-header">
-        <div className="editor-title-wrap">
-          <h2 className="editor-title">{document.title}</h2>
-          <span
-            className={`editor-save-badge editor-save-badge--${status}`}
-            role="status"
-            aria-live="polite"
-          >
-            {saveStatusText}
-            {status === 'error' && (
-              <button
-                type="button"
-                className="editor-retry-btn"
-                onClick={retry}
-                title="Kaydı tekrar dene"
-              >
-                Tekrar dene
-              </button>
-            )}
-          </span>
-        </div>
-        <div className="editor-stats" role="status">
-          <span>{stats.words} kelime</span>
-          <span className="editor-stats-sep" aria-hidden="true">·</span>
-          <span>{stats.chars} karakter</span>
-          {lastSavedText && (
-            <>
-              <span className="editor-stats-sep" aria-hidden="true">·</span>
-              <span>Son kayıt: {lastSavedText}</span>
-            </>
+    <section
+      className={`editor editor--${saveState}`}
+      data-focus-mode={focusMode ? 'true' : undefined}
+      aria-label="Doküman editörü"
+    >
+      <div className="editor__paper">
+        {/* Başlık alanı */}
+        <header className="editor__head">
+          {titleEditing ? (
+            <input
+              className="editor__title-input"
+              value={titleDraft}
+              autoFocus
+              aria-label="Doküman başlığı"
+              onChange={(e) => setTitleDraft(e.target.value)}
+              onBlur={commitTitle}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitTitle();
+                if (e.key === 'Escape') {
+                  setTitleDraft(activeDoc.title);
+                  setTitleEditing(false);
+                }
+              }}
+            />
+          ) : (
+            <h1
+              className="editor__title"
+              tabIndex={0}
+              role="button"
+              title="Yeniden adlandırmak için çift tıklayın"
+              onDoubleClick={() => setTitleEditing(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'F2') setTitleEditing(true);
+              }}
+            >
+              {activeDoc.title}
+            </h1>
           )}
-        </div>
-      </header>
 
-      <textarea
-        ref={textareaRef}
-        className="editor-textarea"
-        value={content}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        placeholder="Yazmaya başlayın... (Ctrl+S ile hemen kaydedebilirsiniz)"
-        spellCheck="true"
-        aria-label={ariaLabel}
-      />
+          {wordTarget > 0 && (
+            <div className="editor__target" aria-label="Kelime hedefi ilerlemesi">
+              <div
+                className={`editor__target-bar${pct >= 100 ? ' is-done' : ''}`}
+                style={{ width: `${pct}%` }}
+              />
+              <span className="editor__target-label">%{pct}</span>
+            </div>
+          )}
+        </header>
 
-      <footer className="editor-footer">
-        <span className="editor-hint">
-          İpucu: Değişiklikler her ~2 saniyede bir otomatik olarak yerel dosyaya kaydedilir · Tamamen yerel, bulut yok
-        </span>
-      </footer>
+        {/* Daktilo yüzeyi */}
+        <textarea
+          ref={textareaRef}
+          className="editor__surface"
+          value={localContent}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          spellCheck={true}
+          placeholder="Yazmaya başlayın…"
+          aria-label={ariaLabel || `${activeDoc.title} içeriği`}
+        />
+
+        {/* Yüzen durum + sayac rozetleri */}
+        <footer className="editor__badges" aria-live="polite">
+          <span className={`save-badge save-badge--${saveState}`}>
+            <span className="save-badge__dot" aria-hidden="true" />
+            {badgeText}
+          </span>
+          <span className="count-badge">
+            <strong>{fmt(words)}</strong> kelime · {fmt(chars)} karakter
+          </span>
+        </footer>
+      </div>
     </section>
   );
 }
