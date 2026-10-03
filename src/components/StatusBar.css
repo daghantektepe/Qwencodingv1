@@ -1,0 +1,225 @@
+/* ==========================================================================
+   OpenScriv — Faz 27: Lüks Durum Çubuğu cilasi
+   Ince, camli serit; tabular rakamlar, mini ilerleme cubugu, zoom slider.
+   Tema token'lari (--bg-header, --accent vb.) Faz 26 motorundan gelir.
+   ========================================================================== */
+
+.statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4, 16px);
+  height: 30px;
+  padding: 0 var(--sp-4, 16px);
+  background: var(--bg-header, #ece8dd);
+  border-top: 1px solid var(--border, #ddd6c8);
+  font-size: 11.5px;
+  color: var(--text-secondary, #6b6455);
+  user-select: none;
+  flex: 0 0 auto;
+}
+
+.statusbar__group {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2, 8px);
+  min-width: 0;
+}
+
+.statusbar__sep {
+  color: var(--text-muted, #948b78);
+  font-size: 10px;
+}
+
+/* --- Sayaç metrikleri --- */
+
+.status-metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.status-metric__value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary, #2f2b24);
+}
+
+.status-metric__unit {
+  color: var(--text-muted, #948b78);
+  letter-spacing: 0.02em;
+}
+
+/* --- Seans ilerleme cubugu --- */
+
+.statusbar__group--session {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.session-bar {
+  position: relative;
+  width: 140px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border, #ddd6c8);
+  overflow: hidden;
+}
+
+.session-bar__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--accent, #7a6c4f),
+    var(--warning, #c98a2d)
+  );
+  transition: width var(--dur-med, 220ms) var(--ease-out, ease);
+}
+
+.session-bar__fill.is-complete {
+  background: linear-gradient(
+    90deg,
+    var(--success, #2e6b3e),
+    var(--accent, #7a6c4f)
+  );
+}
+
+.session-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.session-label strong {
+  color: var(--text-primary, #2f2b24);
+  font-weight: 700;
+}
+
+.session-label__of {
+  color: var(--text-muted, #948b78);
+}
+
+.session-label__done {
+  margin-left: 4px;
+  color: var(--success, #2e6b3e);
+  font-weight: 700;
+}
+
+.session-label--empty {
+  font-style: italic;
+  color: var(--text-muted, #948b78);
+}
+
+/* --- Kayit zaman damgasi --- */
+
+.status-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.status-save__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success, #2e6b3e);
+  box-shadow: 0 0 0 2px var(--success-soft, rgba(46, 107, 62, 0.18));
+}
+
+.status-save.is-none .status-save__dot {
+  background: var(--text-muted, #948b78);
+  box-shadow: none;
+}
+
+/* --- Imlec konumu --- */
+
+.status-cursor {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted, #948b78);
+}
+
+/* --- Zoom slider --- */
+
+.status-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.status-zoom__slider {
+  width: 72px;
+  height: 3px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--border, #ddd6c8);
+  border-radius: 2px;
+  outline: none;
+  cursor: ew-resize;
+}
+
+.status-zoom__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent, #7a6c4f);
+  border: 2px solid var(--bg-elevated, #ffffff);
+  box-shadow: 0 1px 3px rgba(var(--shadow-color, 31, 26, 16), 0.3);
+  transition: transform var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+
+.status-zoom__slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.status-zoom__slider::-moz-range-thumb {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent, #7a6c4f);
+  border: 2px solid var(--bg-elevated, #ffffff);
+}
+
+.status-zoom__value {
+  min-width: 30px;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary, #2f2b24);
+}
+
+/* --- Dar ekranlarda sadelesme --- */
+
+@media (max-width: 900px) {
+  .statusbar {
+    gap: var(--sp-2, 8px);
+  }
+
+  .status-metric__unit,
+  .status-cursor {
+    display: none;
+  }
+
+  .session-bar {
+    width: 90px;
+  }
+}
+
+/* --- Azaltilmis hareket tercihi --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .session-bar__fill,
+  .status-zoom__slider::-webkit-slider-thumb {
+    transition-duration: 1ms !important;
+  }
+}

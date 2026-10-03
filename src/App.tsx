@@ -28,6 +28,10 @@ import CommandPalette from './components/CommandPalette.jsx';
 // @ts-ignore
 import ThemeCustomizer from './components/ThemeCustomizer.jsx';
 // @ts-ignore
+import StatusBar from './components/StatusBar.jsx';
+// @ts-ignore
+import Scratchpad from './components/Scratchpad.jsx';
+// @ts-ignore
 import {
   useTheme,
   THEME_CARDS,
@@ -39,7 +43,7 @@ import {
 import { useProjectState, DEFAULT_METADATA } from './state/project.js';
 // @ts-ignore
 import { countWords } from './utils/count.js';
-import { Palette } from 'lucide-react';
+import { Palette, StickyNote } from 'lucide-react';
 
 import {
   FileText,
@@ -153,6 +157,7 @@ export function App() {
 
   // Disk kalıcılığı callback'i
   const handlePersist = useCallback((stampedProject: any) => {
+    setLastSavedAt(new Date().toISOString());
     const api = (window as any).electronAPI || (window as any).api;
     if (api && typeof api.saveProjectTree === 'function') {
       api.saveProjectTree({ projectId: 'default', tree: stampedProject.tree });
@@ -190,6 +195,38 @@ export function App() {
   const [focusModeOpen, setFocusModeOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [themeCustomizerOpen, setThemeCustomizerOpen] = useState(false);
+  const [scratchpadOpen, setScratchpadOpen] = useState(false);
+  const [zoom, setZoom] = useState(100);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+
+  // Scratchpad notları (localStorage kalıcı)
+  const [scratchpadNotes, setScratchpadNotes] = useState<any[]>(() => {
+    try {
+      const raw = window.localStorage.getItem('openscriv:scratchpad:v1');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [
+      {
+        id: 'note-init-1',
+        text: 'Karakter fikri: Baş karakterin gizli bir dedektiflik geçmişi var.',
+        color: 'yellow',
+        updated: new Date().toISOString(),
+      },
+      {
+        id: 'note-init-2',
+        text: 'Bölüm 2 için araştırma: 1920\'ler tren saatleri ve istasyon mimarisi.',
+        color: 'ivory',
+        updated: new Date().toISOString(),
+      },
+    ];
+  });
+
+  const handleUpdateNotes = useCallback((nextNotes: any[]) => {
+    setScratchpadNotes(nextNotes);
+    try {
+      window.localStorage.setItem('openscriv:scratchpad:v1', JSON.stringify(nextNotes));
+    } catch {}
+  }, []);
 
   // Açık sekmeler (TabBar)
   const [openTabs, setOpenTabs] = useState<{ id: string; title: string; dirty?: boolean }[]>(() => [
@@ -294,6 +331,18 @@ export function App() {
     updateDocContent(docId, restoredContent);
   }, [updateDocContent]);
 
+  const handleSendToDraft = useCallback((_noteId: string, text: string) => {
+    if (!activeDoc) return;
+    const separator = activeDoc.content ? '\n\n---\n' : '';
+    const updated = (activeDoc.content || '') + separator + text;
+    updateDocContent(activeDoc.id, updated);
+  }, [activeDoc, updateDocContent]);
+
+  const handleZoomChange = useCallback((newZoom: number) => {
+    setZoom(newZoom);
+    document.documentElement.style.setProperty('--editor-zoom', `${newZoom / 100}`);
+  }, []);
+
   // Komut Paleti eylemleri
   const commands = useMemo(() => [
     {
@@ -353,6 +402,13 @@ export function App() {
       run: () => setCompileOpen(true),
     },
     {
+      id: 'scratchpad',
+      title: 'Hızlı Not Defteri (Scratchpad)',
+      group: 'Araçlar',
+      shortcut: 'Ctrl+Shift+N',
+      run: () => setScratchpadOpen((prev) => !prev),
+    },
+    {
       id: 'customize-theme',
       title: 'Tema ve Tipografi Ayarları (Oxford, Midnight, vb.)',
       group: 'Arayüz',
@@ -399,6 +455,9 @@ export function App() {
       } else if (e.key === 'F11' || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f')) {
         e.preventDefault();
         setFocusModeOpen((prev) => !prev);
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        setScratchpadOpen((prev) => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -536,6 +595,15 @@ export function App() {
             </button>
             <button
               type="button"
+              className={`icon-button ${scratchpadOpen ? 'active' : ''}`}
+              title="Hızlı Not Defteri (Ctrl+Shift+N / Yüzen Scratchpad)"
+              onClick={() => setScratchpadOpen((prev) => !prev)}
+              style={{ width: 'auto', padding: '0 10px', fontSize: '13px', gap: '6px', background: scratchpadOpen ? 'var(--bg-selected, #dfd8c6)' : undefined }}
+            >
+              <StickyNote size={14} /> Notlar
+            </button>
+            <button
+              type="button"
               className={`icon-button ${focusModeOpen ? 'active' : ''}`}
               title="Odak Modu (F11 / Zen & Daktilo Kaydırma)"
               onClick={() => setFocusModeOpen(true)}
@@ -658,6 +726,18 @@ export function App() {
             />
           )}
         </div>
+
+        {/* Lüks Durum Çubuğu */}
+        {/* @ts-ignore */}
+        <StatusBar
+          content={activeDoc?.content || ''}
+          wordTarget={activeDoc?.metadata?.targetWords || 0}
+          wordsToday={activeWords}
+          lastSavedAt={lastSavedAt}
+          cursor={null}
+          zoom={zoom}
+          onZoomChange={handleZoomChange}
+        />
       </section>
 
       {/* Sağ Panel: Inspector (Metadata, Snapshots, Hedefler) */}
@@ -766,6 +846,18 @@ export function App() {
         lineHeightOptions={LINE_HEIGHT_OPTIONS}
         fontSizeRange={FONT_SIZE_RANGE}
         onTypographyChange={setTypography}
+      />
+
+      {/* Yüzen Not Defteri / Karalama Alanı */}
+      {/* @ts-ignore */}
+      <Scratchpad
+        open={scratchpadOpen}
+        onClose={() => setScratchpadOpen(false)}
+        notes={scratchpadNotes}
+        onChangeNotes={handleUpdateNotes}
+        activeDocId={activeDoc?.id || null}
+        activeDocTitle={activeDoc?.title || null}
+        onSendToDraft={handleSendToDraft}
       />
     </div>
   );
