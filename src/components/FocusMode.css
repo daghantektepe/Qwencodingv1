@@ -1,0 +1,274 @@
+/* ==========================================================================
+   OpenScriv — Faz 24: Odak Modu (Distraction-Free Zen) + Daktilo Kaydirma
+   Tam ekran katman; yalnizca luks kagit ve tipografi kalir.
+   ========================================================================== */
+
+.focusmode {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-app, #f4f2ed);
+  animation: fm-enter 260ms var(--ease-out, ease);
+}
+
+@keyframes fm-enter {
+  from { opacity: 0; transform: scale(0.995); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* --- Ust yuzeysel kontrol cizgisi (varsayilan: neredeyse gorunmez) --- */
+
+.focusmode__chrome {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3, 12px);
+  padding: var(--sp-3, 12px) var(--sp-5, 24px);
+  opacity: 0.25;
+  transition: opacity var(--dur-med, 220ms) var(--ease-out, ease);
+}
+
+.focusmode__chrome:hover {
+  opacity: 1;
+}
+
+.focusmode__title {
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: var(--fs-sm, 0.82rem);
+  font-weight: 600;
+  color: var(--text-secondary, #6b6455);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.focusmode__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2, 8px);
+  flex: 0 0 auto;
+}
+
+.fm-toggle,
+.fm-exit {
+  border: 1px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-xs, 0.72rem);
+  font-weight: 600;
+  color: var(--text-muted, #948b78);
+  border-radius: var(--r-pill, 999px);
+  padding: 5px 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color var(--dur-fast, 120ms) var(--ease-out, ease),
+    background-color var(--dur-fast, 120ms) var(--ease-out, ease),
+    border-color var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+
+.fm-toggle:hover,
+.fm-exit:hover {
+  color: var(--text-primary, #2f2b24);
+  background: var(--bg-hover, #efeadf);
+}
+
+.fm-toggle.is-on {
+  color: var(--accent, #7a6c4f);
+  border-color: var(--accent, #7a6c4f);
+  background: var(--accent-soft, rgba(122, 108, 79, 0.12));
+}
+
+.fm-exit {
+  border-color: var(--border, #ddd6c8);
+  background: var(--bg-elevated, #ffffff);
+}
+
+.fm-exit:hover {
+  border-color: var(--danger, #9c3a3a);
+  color: var(--danger, #9c3a3a);
+}
+
+/* --- Sahne ve kagit --- */
+
+.focusmode__stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  padding: var(--sp-2, 8px) var(--sp-5, 24px) var(--sp-4, 16px);
+}
+
+.focusmode__paper {
+  position: relative;
+  width: 100%;
+  max-width: 70ch;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Kagit ust/alt kisimlarinda yumusak maske: metin "belirip yok olsun" */
+.focusmode__paper::before,
+.focusmode__paper::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 64px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.focusmode__paper::before {
+  top: 0;
+  background: linear-gradient(var(--bg-app, #f4f2ed), transparent);
+}
+
+.focusmode__paper::after {
+  bottom: 0;
+  background: linear-gradient(transparent, var(--bg-app, #f4f2ed));
+}
+
+/* --- Daktilo yuzeyi --- */
+
+.focusmode__surface {
+  flex: 1;
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--text-primary, #2f2b24);
+  caret-color: var(--accent, #7a6c4f);
+
+  /* Tipografi cilasi — Editor ile ayni hiyerarsi */
+  font-family: var(--font-serif, 'Lora', Georgia, 'Times New Roman', serif);
+  font-size: 1.12rem;
+  line-height: 1.9;
+  letter-spacing: 0.005em;
+  word-spacing: 0.06em;
+  hyphens: auto;
+  text-rendering: optimizeLegibility;
+
+  /* Daktilo scrolling'un kalbi: metin ortada baslasin diye genis dolgu */
+  padding: 42vh 8px 42vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.focusmode__surface::-webkit-scrollbar {
+  display: none;
+}
+
+.focusmode__surface::placeholder {
+  color: var(--text-muted, #948b78);
+  font-style: italic;
+}
+
+.focusmode__surface::selection {
+  background: var(--accent-soft, rgba(122, 108, 79, 0.12));
+}
+
+/* --- Caret olcum aynasi (gorunmez) --- */
+
+.focusmode__mirror {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: hidden;
+  top: 0;
+  left: -9999px;
+  z-index: -1;
+}
+
+.fm-mirror-caret {
+  display: inline-block;
+  width: 0;
+  height: 1em;
+}
+
+/* --- Alt durum seridi --- */
+
+.focusmode__statusbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-2, 8px) var(--sp-5, 24px) var(--sp-4, 16px);
+  opacity: 0.55;
+  transition: opacity var(--dur-med, 220ms) var(--ease-out, ease);
+}
+
+.focusmode__statusbar:hover {
+  opacity: 1;
+}
+
+.fm-badge,
+.fm-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  font-size: var(--fs-xs, 0.72rem);
+  font-weight: 600;
+  border-radius: var(--r-pill, 999px);
+  color: var(--text-secondary, #6b6455);
+  transition: background-color var(--dur-med, 220ms) var(--ease-out, ease),
+    color var(--dur-med, 220ms) var(--ease-out, ease),
+    border-color var(--dur-med, 220ms) var(--ease-out, ease);
+}
+
+.fm-count strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary, #2f2b24);
+}
+
+.fm-badge__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted, #948b78);
+}
+
+.fm-badge--typing .fm-badge__dot {
+  background: var(--warning, #c98a2d);
+}
+
+.fm-badge--saving .fm-badge__dot {
+  background: var(--accent, #7a6c4f);
+  animation: fm-pulse 900ms ease-in-out infinite;
+}
+
+.fm-badge--saved {
+  color: var(--success, #2e6b3e);
+  background: var(--success-soft, #e5f3e8);
+}
+
+.fm-badge--saved .fm-badge__dot {
+  background: var(--success, #2e6b3e);
+  animation: none;
+}
+
+@keyframes fm-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.45; transform: scale(0.75); }
+}
+
+/* --- Azaltilmis hareket tercihi --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .focusmode {
+    animation-duration: 1ms !important;
+  }
+
+  .fm-badge--saving .fm-badge__dot {
+    animation: none;
+  }
+}

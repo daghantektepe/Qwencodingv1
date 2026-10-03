@@ -22,6 +22,10 @@ import TabBar from './components/TabBar.jsx';
 // @ts-ignore
 import SplitView from './components/SplitView.jsx';
 // @ts-ignore
+import FocusMode from './components/FocusMode.jsx';
+// @ts-ignore
+import CommandPalette from './components/CommandPalette.jsx';
+// @ts-ignore
 import { useTheme } from './theme.js';
 // @ts-ignore
 import { useProjectState, DEFAULT_METADATA } from './state/project.js';
@@ -44,6 +48,8 @@ import {
   Target,
   Sliders,
   Columns,
+  Command,
+  Maximize2,
 } from 'lucide-react';
 
 const INITIAL_TREE = [
@@ -169,9 +175,11 @@ export function App() {
   // Inspector sekmesi: 'metadata' | 'snapshots' | 'targets'
   const [inspectorTab, setInspectorTab] = useState<'metadata' | 'snapshots' | 'targets'>('metadata');
 
-  // Modallar
+  // Modallar ve Paneller
   const [searchOpen, setSearchOpen] = useState(false);
   const [compileOpen, setCompileOpen] = useState(false);
+  const [focusModeOpen, setFocusModeOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   // Açık sekmeler (TabBar)
   const [openTabs, setOpenTabs] = useState<{ id: string; title: string; dirty?: boolean }[]>(() => [
@@ -276,12 +284,104 @@ export function App() {
     updateDocContent(docId, restoredContent);
   }, [updateDocContent]);
 
+  // Komut Paleti eylemleri
+  const commands = useMemo(() => [
+    {
+      id: 'new-doc',
+      title: 'Yeni Doküman Ekle',
+      group: 'Belge',
+      shortcut: 'Ctrl+N',
+      run: () => addDoc('Yeni Bölüm', activeFolder?.id, undefined),
+    },
+    {
+      id: 'view-editor',
+      title: 'Metin Editörü Görünümüne Geç',
+      group: 'Görünüm',
+      shortcut: 'Alt+1',
+      run: () => setViewMode('editor'),
+    },
+    {
+      id: 'view-corkboard',
+      title: 'Mantar Pano (Corkboard) Görünümüne Geç',
+      group: 'Görünüm',
+      shortcut: 'Alt+2',
+      run: () => setViewMode('corkboard'),
+    },
+    {
+      id: 'view-outliner',
+      title: 'Outliner Görünümüne Geç',
+      group: 'Görünüm',
+      shortcut: 'Alt+3',
+      run: () => setViewMode('outliner'),
+    },
+    {
+      id: 'focus-mode',
+      title: 'Odak Modunu Aç (Distraction-Free Zen)',
+      group: 'Görünüm',
+      shortcut: 'F11',
+      run: () => setFocusModeOpen(true),
+    },
+    {
+      id: 'split-view',
+      title: 'Bölünmüş Ekranı Aç / Kapat (Çift Panel)',
+      group: 'Görünüm',
+      shortcut: 'Ctrl+\\',
+      run: () => setSplitMode((prev) => (prev === 'off' ? 'vertical' : 'off')),
+    },
+    {
+      id: 'search',
+      title: 'Projeyi Ara (Tam Metin)',
+      group: 'Arama',
+      shortcut: 'Ctrl+K',
+      run: () => setSearchOpen(true),
+    },
+    {
+      id: 'compile',
+      title: 'Projeyi Derle ve Dışa Aktar',
+      group: 'Dışa Aktar',
+      shortcut: 'Ctrl+E',
+      run: () => setCompileOpen(true),
+    },
+    {
+      id: 'toggle-theme',
+      title: 'Temayı Değiştir (Açık / Koyu)',
+      group: 'Arayüz',
+      shortcut: 'Ctrl+T',
+      run: () => toggleTheme(),
+    },
+    {
+      id: 'inspector-meta',
+      title: 'Inspector: Doküman Bilgisi ve Özet',
+      group: 'Inspector',
+      run: () => setInspectorTab('metadata'),
+    },
+    {
+      id: 'inspector-snapshots',
+      title: 'Inspector: Anlık Görüntüler (Snapshots)',
+      group: 'Inspector',
+      run: () => setInspectorTab('snapshots'),
+    },
+    {
+      id: 'inspector-targets',
+      title: 'Inspector: Kelime ve Hedef Takibi',
+      group: 'Inspector',
+      run: () => setInspectorTab('targets'),
+    },
+  ], [activeFolder?.id, addDoc, toggleTheme]);
+
   // Klavye kısayolları
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      // Ctrl+Shift+P veya F1 -> Komut Paleti
+      if (((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'p') || e.key === 'F1') {
+        e.preventDefault();
+        setPaletteOpen((prev) => !prev);
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setSearchOpen((prev) => !prev);
+      } else if (e.key === 'F11' || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f')) {
+        e.preventDefault();
+        setFocusModeOpen((prev) => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -396,7 +496,25 @@ export function App() {
             </button>
           </div>
 
-          <div className="toolbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className="toolbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              className="icon-button"
+              title="Komut Paleti (Ctrl+Shift+P / F1)"
+              onClick={() => setPaletteOpen(true)}
+              style={{ width: 'auto', padding: '0 10px', fontSize: '13px', gap: '6px' }}
+            >
+              <Command size={14} /> Komutlar
+            </button>
+            <button
+              type="button"
+              className={`icon-button ${focusModeOpen ? 'active' : ''}`}
+              title="Odak Modu (F11 / Zen & Daktilo Kaydırma)"
+              onClick={() => setFocusModeOpen(true)}
+              style={{ width: 'auto', padding: '0 10px', fontSize: '13px', gap: '6px' }}
+            >
+              <Maximize2 size={14} /> Odak
+            </button>
             <button
               type="button"
               className={`icon-button ${splitMode !== 'off' ? 'active' : ''}`}
@@ -589,6 +707,22 @@ export function App() {
         projectId="default"
         projectName={project.name || 'OpenScriv Projesi'}
         onClose={() => setCompileOpen(false)}
+      />
+
+      {/* Odak Modu (Zen & Daktilo) */}
+      {/* @ts-ignore */}
+      <FocusMode
+        open={focusModeOpen}
+        onClose={() => setFocusModeOpen(false)}
+        doc={activeDoc}
+        onChange={handleContentChange}
+      />
+
+      {/* Hızlı Komut Paleti */}
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        commands={commands as any}
       />
     </div>
   );

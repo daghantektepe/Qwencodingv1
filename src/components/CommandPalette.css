@@ -1,0 +1,193 @@
+/* ==========================================================================
+   OpenScriv — Faz 25: Komut Paleti (CommandPalette) cilasi
+   Modern diyalog penceresi, yumusak acilis animasyonu, klavye vurgulari.
+   ========================================================================== */
+
+.cmd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 14vh var(--sp-4, 16px) var(--sp-4, 16px);
+  background: rgba(31, 26, 16, 0.38);
+  backdrop-filter: blur(3px);
+  animation: cmd-fade var(--dur-med, 220ms) var(--ease-out, ease);
+}
+
+@keyframes cmd-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.cmd-palette {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  max-height: 62vh;
+  background: var(--bg-elevated, #ffffff);
+  border: 1px solid var(--border, #ddd6c8);
+  border-radius: var(--r-lg, 14px);
+  box-shadow: var(--shadow-xl, 0 24px 64px rgba(31, 26, 16, 0.28));
+  overflow: hidden;
+  animation: cmd-pop var(--dur-med, 220ms) var(--ease-out, ease);
+}
+
+@keyframes cmd-pop {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* --- Giris alani --- */
+
+.cmd-palette__field {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2, 8px);
+  padding: var(--sp-3, 12px) var(--sp-4, 16px);
+  border-bottom: 1px solid var(--border, #ddd6c8);
+  background: var(--bg-panel, #faf9f5);
+}
+
+.cmd-palette__icon {
+  flex: 0 0 auto;
+  color: var(--accent, #7a6c4f);
+  font-weight: 700;
+}
+
+.cmd-palette__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  font-size: var(--fs-md, 0.95rem);
+  color: var(--text-primary, #2f2b24);
+}
+
+.cmd-palette__input::placeholder {
+  color: var(--text-muted, #948b78);
+}
+
+.cmd-palette__kbd {
+  flex: 0 0 auto;
+}
+
+/* --- Liste --- */
+
+.cmd-palette__list {
+  list-style: none;
+  margin: 0;
+  padding: var(--sp-2, 8px);
+  overflow-y: auto;
+  flex: 1;
+}
+
+.cmd-palette__empty {
+  padding: var(--sp-4, 16px);
+  text-align: center;
+  color: var(--text-muted, #948b78);
+  font-size: var(--fs-sm, 0.82rem);
+  font-style: italic;
+}
+
+.cmd-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: var(--sp-3, 12px);
+  row-gap: 1px;
+  padding: 9px 12px;
+  border-radius: var(--r-sm, 6px);
+  cursor: pointer;
+  transition: background-color var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+
+.cmd-item.is-active {
+  background: var(--bg-selected, #e4ddcb);
+  box-shadow: inset 2px 0 0 var(--accent, #7a6c4f);
+}
+
+.cmd-item__group {
+  grid-column: 1 / -1;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted, #948b78);
+}
+
+.cmd-item__title {
+  grid-column: 1;
+  font-size: var(--fs-sm, 0.82rem);
+  font-weight: 600;
+  color: var(--text-primary, #2f2b24);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmd-item__hint {
+  grid-column: 1;
+  font-size: var(--fs-xs, 0.72rem);
+  color: var(--text-secondary, #6b6455);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmd-item__shortcut {
+  grid-column: 2;
+  grid-row: 2 / span 2;
+  display: inline-flex;
+  gap: 3px;
+  align-self: center;
+}
+
+.cmd-item__shortcut kbd + kbd::before {
+  content: '+';
+  margin-right: 3px;
+  color: var(--text-muted, #948b78);
+}
+
+/* --- Alt bilgi --- */
+
+.cmd-palette__foot {
+  display: flex;
+  gap: var(--sp-4, 16px);
+  padding: 8px var(--sp-4, 16px);
+  border-top: 1px solid var(--border, #ddd6c8);
+  background: var(--bg-panel, #faf9f5);
+  font-size: var(--fs-xs, 0.72rem);
+  color: var(--text-muted, #948b78);
+}
+
+.cmd-palette__foot span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+kbd {
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary, #6b6455);
+  background: var(--bg-elevated, #ffffff);
+  border: 1px solid var(--border, #ddd6c8);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* --- Azaltilmis hareket tercihi --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .cmd-overlay,
+  .cmd-palette {
+    animation-duration: 1ms !important;
+  }
+}
