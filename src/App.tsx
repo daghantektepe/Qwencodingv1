@@ -18,6 +18,10 @@ import Snapshots from './components/Snapshots.jsx';
 // @ts-ignore
 import WordCount from './components/WordCount.jsx';
 // @ts-ignore
+import TabBar from './components/TabBar.jsx';
+// @ts-ignore
+import SplitView from './components/SplitView.jsx';
+// @ts-ignore
 import { useTheme } from './theme.js';
 // @ts-ignore
 import { useProjectState, DEFAULT_METADATA } from './state/project.js';
@@ -39,6 +43,7 @@ import {
   Camera,
   Target,
   Sliders,
+  Columns,
 } from 'lucide-react';
 
 const INITIAL_TREE = [
@@ -168,6 +173,15 @@ export function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [compileOpen, setCompileOpen] = useState(false);
 
+  // Açık sekmeler (TabBar)
+  const [openTabs, setOpenTabs] = useState<{ id: string; title: string; dirty?: boolean }[]>(() => [
+    { id: 'doc-chapter-1', title: 'Bölüm 1: Başlangıç' },
+  ]);
+
+  // Bölünmüş ekran durumu (SplitView): 'off' | 'vertical' | 'horizontal'
+  const [splitMode, setSplitMode] = useState<'off' | 'vertical' | 'horizontal'>('off');
+  const [secondaryDocId, setSecondaryDocId] = useState<string>('doc-char-protagonist');
+
   // Aktif düğüm ve aktif doküman
   const activeNode = useMemo(() => findNodeInTree(tree, selectedId) || firstDoc, [tree, selectedId, firstDoc]);
   const activeDoc = useMemo(() => {
@@ -185,13 +199,51 @@ export function App() {
   // Canlı kelime sayısı
   const activeWords = useMemo(() => countWords(activeDoc?.content || ''), [activeDoc?.content]);
 
+  // Sekme yönetimi
+  const addTab = useCallback((id: string, title?: string) => {
+    setOpenTabs((prev) => {
+      if (prev.some((t) => t.id === id)) return prev;
+      return [...prev, { id, title: title || 'Belge' }];
+    });
+  }, []);
+
+  const handleSelectTab = useCallback((tabId: string) => {
+    setSelectedId(tabId);
+    setViewMode('editor');
+  }, []);
+
+  const handleCloseTab = useCallback((tabId: string) => {
+    setOpenTabs((prev) => {
+      if (prev.length <= 1) return prev;
+      const nextTabs = prev.filter((t) => t.id !== tabId);
+      if (selectedId === tabId) {
+        const closedIdx = prev.findIndex((t) => t.id === tabId);
+        const nextActive = nextTabs[Math.max(0, closedIdx - 1)] || nextTabs[0];
+        if (nextActive) setSelectedId(nextActive.id);
+      }
+      return nextTabs;
+    });
+  }, [selectedId]);
+
+  // Tab başlıklarını ağaç ile senkronize et
+  const syncedTabs = useMemo(() => {
+    return openTabs.map((t) => {
+      const node = findNodeInTree(tree, t.id);
+      return {
+        ...t,
+        title: node?.title || t.title,
+      };
+    });
+  }, [openTabs, tree]);
+
   // Seçim işleyicileri
   const handleSelectDoc = useCallback((docNode: any) => {
     if (docNode) {
       setSelectedId(docNode.id);
       setViewMode('editor');
+      addTab(docNode.id, docNode.title);
     }
-  }, []);
+  }, [addTab]);
 
   const handleSelectNode = useCallback((node: any) => {
     if (!node) return;
@@ -200,14 +252,17 @@ export function App() {
       setViewMode('corkboard');
     } else {
       setViewMode('editor');
+      addTab(node.id, node.title);
     }
-  }, []);
+  }, [addTab]);
 
   const handleSelectDocById = useCallback((docId: string) => {
     setSelectedId(docId);
     setViewMode('editor');
+    const node = findNodeInTree(tree, docId);
+    addTab(docId, node?.title || 'Belge');
     setSearchOpen(false);
-  }, []);
+  }, [addTab, tree]);
 
   const handleContentChange = useCallback((docId: string, newContent: string) => {
     updateDocContent(docId, newContent);
@@ -342,6 +397,15 @@ export function App() {
           </div>
 
           <div className="toolbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              type="button"
+              className={`icon-button ${splitMode !== 'off' ? 'active' : ''}`}
+              title={splitMode === 'off' ? 'Bölünmüş Ekranı Aç (Çift Panel)' : 'Tek Panel Görünümüne Dön'}
+              onClick={() => setSplitMode((prev) => (prev === 'off' ? 'vertical' : 'off'))}
+              style={{ width: 'auto', padding: '0 10px', fontSize: '13px', gap: '6px', background: splitMode !== 'off' ? 'var(--bg-selected, #dfd8c6)' : undefined }}
+            >
+              <Columns size={15} /> {splitMode !== 'off' ? 'Tek Panel' : 'Böl'}
+            </button>
             <span style={{ fontSize: '13px', fontWeight: 600 }}>{activeWords} words</span>
             <button
               type="button"
@@ -355,29 +419,96 @@ export function App() {
           </div>
         </header>
 
+        {/* Doküman Sekmeleri (TabBar) */}
+        <TabBar
+          tabs={syncedTabs}
+          activeId={selectedId}
+          onSelect={handleSelectTab}
+          onClose={handleCloseTab}
+        />
+
         {/* Görünüm İçeriği */}
-        <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
-          {viewMode === 'editor' && (
-            <Editor
-              document={activeDoc}
-              onChange={handleContentChange}
-              ariaLabel="Manuscript editor"
-            />
-          )}
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          {splitMode === 'off' ? (
+            <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+              {viewMode === 'editor' && (
+                <Editor
+                  document={activeDoc}
+                  onChange={handleContentChange}
+                  ariaLabel="Manuscript editor"
+                />
+              )}
 
-          {viewMode === 'corkboard' && (
-            <Corkboard
-              folder={activeFolder}
-              onSelectNode={handleSelectNode}
-              onUpdateSynopsis={handleUpdateSynopsis}
-            />
-          )}
+              {viewMode === 'corkboard' && (
+                <Corkboard
+                  folder={activeFolder}
+                  onSelectNode={handleSelectNode}
+                  onUpdateSynopsis={handleUpdateSynopsis}
+                />
+              )}
 
-          {viewMode === 'outliner' && (
-            <Outliner
-              tree={tree}
-              selectedId={selectedId as any}
-              onSelectNode={handleSelectNode}
+              {viewMode === 'outliner' && (
+                <Outliner
+                  tree={tree}
+                  selectedId={selectedId as any}
+                  onSelectNode={handleSelectNode}
+                />
+              )}
+            </div>
+          ) : (
+            <SplitView
+              orientation={splitMode}
+              onOrientationChange={(newOrient: any) => setSplitMode(newOrient)}
+              primaryLabel="Birincil Görünüm"
+              secondaryLabel="İkincil Panel"
+              primary={
+                <div style={{ height: '100%', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+                  {viewMode === 'editor' && (
+                    <Editor
+                      document={activeDoc}
+                      onChange={handleContentChange}
+                      ariaLabel="Manuscript editor"
+                    />
+                  )}
+                  {viewMode === 'corkboard' && (
+                    <Corkboard
+                      folder={activeFolder}
+                      onSelectNode={handleSelectNode}
+                      onUpdateSynopsis={handleUpdateSynopsis}
+                    />
+                  )}
+                  {viewMode === 'outliner' && (
+                    <Outliner
+                      tree={tree}
+                      selectedId={selectedId as any}
+                      onSelectNode={handleSelectNode}
+                    />
+                  )}
+                </div>
+              }
+              secondary={
+                <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-editor, #faf8f5)' }}>
+                  <div style={{ padding: '6px 12px', background: 'var(--bg-header, #efece4)', borderBottom: '1px solid var(--border, #d9d4c8)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
+                    <span style={{ fontWeight: 600, color: 'var(--accent, #7a6c4f)' }}>İkincil Panel (Referans Not)</span>
+                    <select
+                      value={secondaryDocId}
+                      onChange={(e) => setSecondaryDocId(e.target.value)}
+                      style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border, #d9d4c8)', background: 'var(--bg-card, #fff)', color: 'var(--text, #2c2518)' }}
+                    >
+                      <option value="doc-char-protagonist">Karakter: Eren</option>
+                      <option value="doc-chapter-1">Bölüm 1: Başlangıç</option>
+                      <option value="doc-chapter-2">Bölüm 2: İpucu</option>
+                    </select>
+                  </div>
+                  <div style={{ flex: 1, overflow: 'auto' }}>
+                    <Editor
+                      document={findNodeInTree(tree, secondaryDocId) || activeDoc}
+                      onChange={handleContentChange}
+                      ariaLabel="Secondary editor"
+                    />
+                  </div>
+                </div>
+              }
             />
           )}
         </div>

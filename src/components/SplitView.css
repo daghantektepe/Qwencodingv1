@@ -1,0 +1,149 @@
+/* ==========================================================================
+   OpenScriv — Faz 23: Bolunmus ekran (SplitView) cilasi
+   Pisiriz surukleme tutamaci, yumusak gecisler, iki bagimsiz kaydirma.
+   ========================================================================== */
+
+.split {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  background: var(--bg-app, #f4f2ed);
+}
+
+.split--vertical {
+  flex-direction: row;
+}
+
+.split--horizontal {
+  flex-direction: column;
+}
+
+/* --- Paneller --- */
+
+.split__pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.split__pane--primary {
+  flex: 0 0 auto;
+}
+
+.split__pane--secondary {
+  flex: 1 1 auto;
+}
+
+/* Surtukleme sirasinda gecikleri dondur (akici his) */
+.split[data-orienting='true'] .split__pane {
+  transition: none;
+}
+
+/* Drag sirasinda metin secimini engelle (body class'iyle) */
+.splitview-dragging {
+  user-select: none;
+  cursor: col-resize;
+}
+
+.splitview-dragging .split--horizontal ~ *,
+body.splitview-dragging {
+  cursor: inherit;
+}
+
+/* Yatay bolunmede drag imleci satir boyutlandirmaya donsun */
+.split--horizontal {
+  cursor: default;
+}
+
+body.splitview-dragging-h {
+  cursor: row-resize;
+}
+
+/* --- Tutamac (handle) --- */
+
+.split__handle {
+  flex: 0 0 6px;
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--border, #ddd6c8);
+  cursor: col-resize;
+  touch-action: none; /* mobilde pointer drag temiz kalsin */
+  transition: background-color var(--dur-fast, 120ms) var(--ease-out, ease),
+    box-shadow var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+
+.split--horizontal .split__handle {
+  flex-basis: 6px;
+  cursor: row-resize;
+}
+
+.split__handle:hover,
+.split__handle:focus-visible {
+  background: var(--accent, #7a6c4f);
+  outline: none;
+}
+
+.split__handle:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent-soft, rgba(122, 108, 79, 0.35));
+}
+
+/* Tutamacin ortesindeki uc nokta grip */
+.split__grip {
+  display: flex;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.split--vertical .split__grip {
+  flex-direction: column;
+}
+
+.split--horizontal .split__grip {
+  flex-direction: row;
+}
+
+.split__grip i {
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: var(--text-muted, #948b78);
+  transition: background-color var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+
+.split__handle:hover .split__grip i,
+.split__handle:focus-visible .split__grip i {
+  background: #ffffff;
+}
+
+/* Genisletilmis tuketme alani: ince cubugu fare ile yakalamayi kolaylastir */
+.split__handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  right: -4px;
+}
+
+.split--horizontal .split__handle::before {
+  top: -4px;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+}
+
+/* --- Azaltilmis hareket tercihi --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .split__handle,
+  .split__grip i {
+    transition-duration: 1ms !important;
+  }
+}

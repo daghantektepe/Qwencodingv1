@@ -1,0 +1,204 @@
+/* ==========================================================================
+   OpenScriv — Faz 22: Sekme cubugu (TabBar) cilasi
+   Kehribar vurgu, yumusak yukselme, yatay tasmanda maske gradyanlari.
+   ========================================================================== */
+
+.tabbar {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  height: 38px;
+  flex: 0 0 auto;
+  background: var(--bg-header, #ece8dd);
+  border-bottom: 1px solid var(--border, #ddd6c8);
+  user-select: none;
+}
+
+/* Kenar taşma maskeleri (sağ/solda yumuşak fade) */
+.tabbar::before,
+.tabbar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 28px;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-med, 220ms) var(--ease-out, ease);
+}
+
+.tabbar::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--bg-header, #ece8dd), transparent);
+}
+
+.tabbar::after {
+  right: 0;
+  background: linear-gradient(270deg, var(--bg-header, #ece8dd), transparent);
+}
+
+.tabbar.has-overflow-left::before { opacity: 1; }
+.tabbar.has-overflow-right::after { opacity: 1; }
+
+.tabbar__scroller {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px var(--sp-2, 8px) 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong, #c4bba6) transparent;
+}
+
+.tabbar__scroller::-webkit-scrollbar {
+  height: 5px;
+}
+
+.tabbar__scroller::-webkit-scrollbar-thumb {
+  background: var(--border-strong, #c4bba6);
+  border-radius: 3px;
+}
+
+.tabbar__scroller::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* --- Tek sekme --- */
+
+.tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 200px;
+  min-width: 90px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-xs, 0.72rem);
+  color: var(--text-secondary, #6b6455);
+  padding: 8px 10px 9px;
+  border-radius: var(--r-sm, 6px) var(--r-sm, 6px) 0 0;
+  cursor: pointer;
+  transform: translateY(1px);
+  transition: background-color var(--dur-fast, 120ms) var(--ease-out, ease),
+    color var(--dur-fast, 120ms) var(--ease-out, ease),
+    transform var(--dur-med, 220ms) var(--ease-out, ease),
+    box-shadow var(--dur-med, 220ms) var(--ease-out, ease);
+}
+
+.tab:hover {
+  background: var(--bg-hover, #efeadf);
+  color: var(--text-primary, #2f2b24);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--accent, #7a6c4f);
+  outline-offset: -2px;
+}
+
+/* Aktif sekme: kagitla birlesir, yukari kalkar, kehribar cizgi */
+.tab.is-active {
+  background: var(--bg-elevated, #ffffff);
+  color: var(--text-primary, #2f2b24);
+  font-weight: 600;
+  border-color: var(--border, #ddd6c8);
+  transform: translateY(0);
+  box-shadow: 0 -2px 6px rgba(31, 26, 16, 0.06);
+  z-index: 1;
+}
+
+.tab.is-active::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 0;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: linear-gradient(90deg, var(--accent, #7a6c4f), var(--warning, #c98a2d));
+}
+
+/* Alt kenarı kağıda bağla (border-bottom'u gizle) */
+.tab.is-active::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  height: 2px;
+  background: var(--bg-elevated, #ffffff);
+}
+
+/* --- Başlık metni --- */
+
+.tab__label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Kaydedilmemiş nokta --- */
+
+.tab__dirty {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--warning, #c98a2d);
+  animation: tab-dirty-pulse 1600ms ease-in-out infinite;
+}
+
+@keyframes tab-dirty-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+
+/* --- Kapatma butonu --- */
+
+.tab__close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 0.95rem;
+  line-height: 1;
+  color: var(--text-muted, #948b78);
+  transition: background-color var(--dur-fast, 120ms) var(--ease-out, ease),
+    color var(--dur-fast, 120ms) var(--ease-out, ease),
+    opacity var(--dur-fast, 120ms) var(--ease-out, ease);
+  opacity: 0;
+}
+
+.tab:hover .tab__close,
+.tab.is-active .tab__close,
+.tab:focus-within .tab__close {
+  opacity: 1;
+}
+
+.tab__close:hover {
+  background: var(--danger-soft, #fbeaea);
+  color: var(--danger, #9c3a3a);
+}
+
+/* --- Azaltılmış hareket tercihi --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .tabbar::before,
+  .tabbar::after {
+    transition-duration: 1ms !important;
+  }
+
+  .tab__dirty {
+    animation: none;
+  }
+}
