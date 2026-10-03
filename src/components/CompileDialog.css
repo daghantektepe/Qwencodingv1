@@ -1,138 +1,272 @@
+/* ==========================================================================
+   OpenScriv — Faz 21: Compile modali — modern diyalog cilasi
+   ========================================================================== */
+
 .compile-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(2px);
+  z-index: 60;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  padding: var(--sp-4, 16px);
+  background: rgba(31, 26, 16, 0.38);
+  backdrop-filter: blur(3px);
+  animation: compile-fade var(--dur-med, 220ms) var(--ease-out, ease);
+}
+
+@keyframes compile-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .compile-dialog {
-  width: 620px;
-  max-width: 90vw;
-  background: var(--bg-panel, #fbfaf7);
-  color: var(--text-primary, #3c382e);
-  border: 1px solid var(--border-strong, #b9b09c);
-  border-radius: 8px;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 560px;
+  max-height: 84vh;
   display: flex;
   flex-direction: column;
-  max-height: 85vh;
+  background: var(--bg-elevated, #ffffff);
+  border: 1px solid var(--border, #ddd6c8);
+  border-radius: var(--r-lg, 14px);
+  box-shadow: var(--shadow-xl, 0 24px 64px rgba(31, 26, 16, 0.28));
+  overflow: hidden;
+  animation: compile-pop var(--dur-med, 220ms) var(--ease-out, ease);
 }
 
-.compile-dialog__header {
+@keyframes compile-pop {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.compile-dialog__head {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border, #d9d4c8);
+  justify-content: space-between;
+  padding: var(--sp-4, 16px) var(--sp-5, 24px);
+  border-bottom: 1px solid var(--border, #ddd6c8);
+  background: var(--bg-header, #ece8dd);
 }
 
-.compile-dialog__header h2 {
+.compile-dialog__head h2 {
   margin: 0;
-  font-size: 16px;
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: var(--fs-lg, 1.1rem);
+  font-weight: 700;
+  color: var(--text-primary, #2f2b24);
 }
 
-.compile-close {
+.compile-dialog__close {
   border: none;
   background: transparent;
-  font-size: 20px;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--text-muted, #948b78);
   cursor: pointer;
-  color: var(--text-muted, #8a7f66);
+  padding: 2px 8px;
+  border-radius: var(--r-sm, 6px);
+  transition: color var(--dur-fast, 120ms) var(--ease-out, ease),
+    background-color var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+
+.compile-dialog__close:hover {
+  color: var(--text-primary, #2f2b24);
+  background: var(--bg-hover, #efeadf);
 }
 
 .compile-dialog__body {
-  padding: 16px 18px;
-  overflow-y: auto;
   flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-5, 24px);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--sp-5, 24px);
+}
+
+/* --- Bölüm kartları --- */
+
+.compile-section__title {
+  margin: 0 0 var(--sp-2, 8px);
+  font-size: var(--fs-xs, 0.72rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted, #948b78);
+}
+
+.format-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-2, 8px);
+}
+
+.format-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 11px 13px;
+  border: 1px solid var(--border, #ddd6c8);
+  border-radius: var(--r-md, 10px);
+  background: var(--bg-panel, #faf9f5);
+  cursor: pointer;
+  transition: border-color var(--dur-fast, 120ms) var(--ease-out, ease),
+    box-shadow var(--dur-fast, 120ms) var(--ease-out, ease),
+    background-color var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+
+.format-card input[type='radio'] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.format-card:hover {
+  border-color: var(--border-strong, #c4bba6);
+}
+
+.format-card.is-active {
+  border-color: var(--accent, #7a6c4f);
+  background: var(--bg-elevated, #ffffff);
+  box-shadow: 0 0 0 2px var(--accent-soft, rgba(122, 108, 79, 0.12));
+}
+
+.format-card__label {
+  font-size: var(--fs-sm, 0.82rem);
+  font-weight: 700;
+  color: var(--text-primary, #2f2b24);
+}
+
+.format-card__desc {
+  font-size: var(--fs-xs, 0.72rem);
+  color: var(--text-muted, #948b78);
+}
+
+/* --- Select & seçenekler --- */
+
+.compile-select {
+  width: 100%;
+  font: inherit;
+  font-size: var(--fs-sm, 0.82rem);
+  color: var(--text-primary, #2f2b24);
+  background: var(--bg-elevated, #ffffff);
+  border: 1px solid var(--border, #ddd6c8);
+  border-radius: var(--r-sm, 6px);
+  padding: 8px 10px;
+  outline: none;
+  transition: border-color var(--dur-fast, 120ms) var(--ease-out, ease),
+    box-shadow var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+
+.compile-select:focus {
+  border-color: var(--border-focus, #8a7f66);
+  box-shadow: 0 0 0 3px var(--accent-soft, rgba(122, 108, 79, 0.12));
+}
+
+.compile-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: var(--fs-sm, 0.82rem);
+  color: var(--text-primary, #2f2b24);
+  padding: 5px 0;
+  cursor: pointer;
+}
+
+.compile-check input[type='checkbox'] {
+  accent-color: var(--accent, #7a6c4f);
+  width: 15px;
+  height: 15px;
 }
 
 .compile-field {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.compile-field__label {
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.compile-formats {
-  display: flex;
-  gap: 10px;
-}
-
-.compile-format {
-  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid var(--border, #d9d4c8);
-  border-radius: 6px;
-  cursor: pointer;
+  justify-content: space-between;
+  gap: var(--sp-3, 12px);
+  font-size: var(--fs-sm, 0.82rem);
+  color: var(--text-primary, #2f2b24);
+  padding: 5px 0;
+}
+
+.compile-separator {
+  width: 140px;
+  font: inherit;
+  font-size: var(--fs-sm, 0.82rem);
+  color: var(--text-primary, #2f2b24);
   background: var(--bg-elevated, #ffffff);
-  font-size: 13px;
+  border: 1px solid var(--border, #ddd6c8);
+  border-radius: var(--r-sm, 6px);
+  padding: 6px 9px;
+  outline: none;
 }
 
-.compile-format--active {
-  border-color: var(--accent, #7a6c4f);
-  background: var(--bg-selected, #dfd8c6);
+.compile-separator:focus {
+  border-color: var(--border-focus, #8a7f66);
+  box-shadow: 0 0 0 3px var(--accent-soft, rgba(122, 108, 79, 0.12));
 }
 
-.compile-docs {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  max-height: 180px;
-  overflow-y: auto;
-  border: 1px solid var(--border, #d9d4c8);
-  border-radius: 6px;
-  background: var(--bg-elevated, #ffffff);
-}
+/* --- Alt bilgi --- */
 
-.compile-doc-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.compile-doc-item:hover {
-  background: var(--bg-hover, #f2eee3);
-}
-
-.compile-dialog__footer {
+.compile-dialog__foot {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 12px 18px;
-  border-top: 1px solid var(--border, #d9d4c8);
+  gap: var(--sp-2, 8px);
+  padding: var(--sp-4, 16px) var(--sp-5, 24px);
+  border-top: 1px solid var(--border, #ddd6c8);
+  background: var(--bg-panel, #faf9f5);
 }
 
-.compile-btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.compile-btn--secondary {
-  border: 1px solid var(--border, #d9d4c8);
+.btn {
+  border: 1px solid var(--border, #ddd6c8);
   background: var(--bg-elevated, #ffffff);
-  color: inherit;
+  color: var(--text-primary, #2f2b24);
+  font: inherit;
+  font-size: var(--fs-sm, 0.82rem);
+  font-weight: 600;
+  border-radius: var(--r-sm, 6px);
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color var(--dur-fast, 120ms) var(--ease-out, ease),
+    border-color var(--dur-fast, 120ms) var(--ease-out, ease),
+    opacity var(--dur-fast, 120ms) var(--ease-out, ease);
 }
 
-.compile-btn--primary {
-  border: 1px solid var(--accent, #7a6c4f);
+.btn:hover {
+  border-color: var(--border-strong, #c4bba6);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.btn--primary {
   background: var(--accent, #7a6c4f);
-  color: #fff;
+  border-color: var(--accent, #7a6c4f);
+  color: #ffffff;
+}
+
+.btn--primary:hover {
+  background: var(--accent-hover, #655a42);
+  border-color: var(--accent-hover, #655a42);
+}
+
+.btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-secondary, #6b6455);
+}
+
+.btn--ghost:hover {
+  background: var(--bg-hover, #efeadf);
+}
+
+/* --- Azaltılmış hareket tercihi --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .compile-overlay,
+  .compile-dialog {
+    animation-duration: 1ms !important;
+  }
 }

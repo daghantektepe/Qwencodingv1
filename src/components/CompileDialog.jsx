@@ -2,284 +2,174 @@ import React, { useState, useCallback, useMemo } from 'react';
 import './CompileDialog.css';
 
 /**
- * CompileDialog — Faz 12: Seçili dokümanları derleyip dışa aktarma arayüzü.
+ * CompileDialog — Faz 21: Derleme (Compile) modalı.
  *
- * electron/compile.js'deki IPC kanallarına bağlanır:
- *   - compile:run → derlenmiş içerik üretir (Markdown/HTML/Plain)
- *   - save-compiled-file → native Save Dialog ile diska yazar
- * Electron API yoksa (tarayıcı/geliştirme modu) Blob + <a download> fallback'ı kullanılır.
+ * Scrivener tarzı: biçim + kapsam seçimi, önizleme özeti, "Derle" aksiyonu.
+ * Modern diyalog cilası: section kartları, radyo kartlar, yumuşak geçişler.
  *
  * props:
- *   open: boolean — dialog açık/kapalı
- *   tree: Node[] — proje ağacı (derlenecek veri)
- *   projectId: string — main process dosya taraması için
- *   projectName?: string — çıktı dosya adı önerisi
+ *   open: boolean
  *   onClose: () => void
+ *   tree: Node[] — proje ağacı (kapsam listesi için düzleştirilir)
+ *   onCompile?: (options) => Promise<void> | void
+ *       options: { format, scopeId, includeSynopsis, titlePage, separator }
  */
 
 const FORMATS = [
-  { id: 'markdown', label: 'Markdown (.md)', ext: 'md', mime: 'text/markdown;charset=utf-8' },
-  { id: 'html', label: 'HTML (.html)', ext: 'html', mime: 'text/html;charset=utf-8' },
-  { id: 'plain', label: 'Düz Metin (.txt)', ext: 'txt', mime: 'text/plain;charset=utf-8' },
+  { id: 'md', label: 'Markdown (.md)', desc: 'Düz metin, taşınabilir' },
+  { id: 'html', label: 'HTML (.html)', desc: 'Tarayıcıda okuma, stilli' },
+  { id: 'txt', label: 'Düz Metin (.txt)', desc: 'En sade biçim' },
+  { id: 'epub', label: 'ePUB (.epub)', desc: 'E-kitap (planlandı)' },
 ];
 
-/** Ağaçtan tüm dokümanları sırasıyla düzleştirir. */
-function flattenDocs(nodes, out = []) {
+function flatten(nodes, depth = 0, out = []) {
   for (const n of nodes || []) {
-    if (n.type === 'doc') out.push(n);
-    if (n.type === 'folder' && Array.isArray(n.children)) flattenDocs(n.children, out);
+    out.push({ id: n.id, title: n.title, type: n.type || 'doc', depth });
+    if (n.type === 'folder' && Array.isArray(n.children)) {
+      flatten(n.children, depth + 1, out);
+    }
   }
   return out;
 }
 
-export default function CompileDialog({ open, tree = [], projectId = 'default', projectName = 'OpenScriv Projesi', onClose }) {
-  const [formatId, setFormatId] = useState('markdown');
-  const [includeTitles, setIncludeTitles] = useState(true);
-  const [selectedIds, setSelectedIds] = useState(null); // null => hepsi
+export default function CompileDialog({
+  open,
+  onClose,
+  tree = [],
+  onCompile = null,
+  projectId = 'default',
+  projectName = 'OpenScriv Projesi',
+}) {
+  const [format, setFormat] = useState('md');
+  const [scopeId, setScopeId] = useState('all');
+  const [includeSynopsis, setIncludeSynopsis] = useState(false);
+  const [titlePage, setTitlePage] = useState(true);
+  const [separator, setSeparator] = useState('---');
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState(null); // { ok, path?, error? } | { canceled }
 
-  const allDocs = useMemo(() => flattenDocs(tree), [tree]);
-  const activeIds = selectedIds ?? allDocs.map((d) => d.id);
-  const selectedCount = activeIds.length;
-
-  const toggleDoc = useCallback(
-    (id) => {
-      setSelectedIds((prev) => {
-        const base = prev ?? allDocs.map((d) => d.id);
-        return base.includes(id) ? base.filter((x) => x !== id) : [...base, id];
-      });
-    },
-    [allDocs]
+  const flat = useMemo(() => flatten(tree), [tree]);
+  const scopes = useMemo(
+    () => [{ id: 'all', title: 'Tüm proje', type: 'root', depth: 0 }, ...flat],
+    [flat]
   );
 
-  const selectAll = useCallback(() => setSelectedIds(allDocs.map((d) => d.id)), [allDocs]);
-  const selectNone = useCallback(() => setSelectedIds([]), []);
-
-  // --- Renderer-tarafı fallback derleme (Electron yoksa, örn. tarayıcı modu) ---
-  const localCompile = useCallback(
-    (fmt) => {
-      const docs = allDocs.filter((d) => activeIds.includes(d.id));
-      const esc = (s) =>
-        String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      const wrapParas = (t) =>
-        String(t ?? '')
-          .split(/\n\s*\n/)
-          .map((b) => {
-            const x = b.trim();
-            if (!x) return '';
-            return `<p>${esc(x).replace(/\n/g, '<br />')}</p>`;
-          })
-          .filter(Boolean)
-          .join('\n');
-
-      if (fmt.id === 'html') {
-        let html = `<!DOCTYPE html>\n<html lang="tr">\n<head>\n<meta charset="UTF-8" />\n<title>${esc(projectName)}</title>\n<style>body{font-family:Georgia,serif;max-width:720px;margin:40px auto;padding:0 20px;line-height:1.6}</style>\n</head>\n<body>\n<h1>${esc(projectName)}</h1>\n`;
-        html += docs
-          .map((d) => `${includeTitles ? `<h2>${esc(d.title)}</h2>\n` : ''}${wrapParas(d.content || '')}`)
-          .join('\n<hr />\n');
-        html += '\n</body>\n</html>';
-        return html;
-      }
-      if (fmt.id === 'plain') {
-        return (
-          `${projectName}\n${'='.repeat(projectName.length)}\n\n` +
-          docs
-            .map(
-              (d) =>
-                `${includeTitles ? `${d.title}\n${'-'.repeat(d.title.length)}\n\n` : ''}${d.content || ''}`
-            )
-            .join('\n\n====================\n\n')
-        );
-      }
-      // markdown
-      return (
-        `# ${projectName}\n\n` +
-        docs
-          .map((d) => `${includeTitles ? `## ${d.title}\n\n` : ''}${d.content || ''}`)
-          .join('\n\n---\n\n')
-      );
-    },
-    [allDocs, activeIds, includeTitles, projectName]
-  );
-
-  const browserDownload = useCallback((content, fileName, mime) => {
-    try {
-      const blob = new Blob([content], { type: mime });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
-      return { ok: true, path: fileName };
-    } catch (err) {
-      return { ok: false, error: err.message };
+  const compile = useCallback(async () => {
+    if (typeof onCompile !== 'function') {
+      onClose();
+      return;
     }
-  }, []);
-
-  const handleCompile = useCallback(async () => {
-    if (busy || selectedCount === 0) return;
     setBusy(true);
-    setResult(null);
-    const fmt = FORMATS.find((f) => f.id === formatId) || FORMATS[0];
     try {
-      // API çözümleme: window.api önce, sonra window.electronAPI
-      const api = typeof window !== 'undefined' ? (window.api || window.electronAPI) : null;
-
-      if (api?.invoke) {
-        // 1) Derle (electron/compile.js: 'compile:run')
-        const compiled = await api.invoke('compile:run', {
-          projectId,
-          tree,
-          docIds: activeIds,
-          format: fmt.id,
-          projectName,
-          options: { includeTitle: includeTitles },
-        });
-        if (!compiled?.ok) {
-          setResult({ ok: false, error: compiled?.error || 'Derleme başarısız.' });
-          setBusy(false);
-          return;
-        }
-
-        // 2) Kaydet (native Save Dialog)
-        const saveRes = await api.invoke('save-compiled-file', {
-          content: compiled.compiled.content,
-          fileName: compiled.compiled.fileName,
-          filterName: fmt.label,
-          extensions: [fmt.ext],
-        });
-        if (saveRes?.ok) {
-          setResult({ ok: true, path: saveRes.path });
-        } else if (saveRes?.canceled) {
-          setResult({ canceled: true });
-        } else {
-          setResult({ ok: false, error: saveRes?.error || 'Dosya kaydedilemedi.' });
-        }
-      } else {
-        // Tarayıcı/geliştirme modu: yerel derleme + indirme
-        const content = localCompile(fmt);
-        const dl = browserDownload(content, `${projectName.replace(/[\\/:*?"<>|]/g, '_')}.${fmt.ext}`, fmt.mime);
-        setResult(dl);
-      }
-    } catch (err) {
-      setResult({ ok: false, error: err.message || 'Beklenmeyen hata.' });
+      await onCompile({ format, scopeId, includeSynopsis, titlePage, separator });
+      onClose();
     } finally {
       setBusy(false);
     }
-  }, [busy, selectedCount, formatId, projectId, tree, activeIds, projectName, includeTitles, localCompile, browserDownload]);
+  }, [format, includeSynopsis, onClose, onCompile, scopeId, separator, titlePage]);
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Escape' && !busy) onClose?.();
-  };
+  React.useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [open, onClose]);
 
   if (!open) return null;
 
   return (
     <div
       className="compile-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Proje Derle"
-      onKeyDown={handleKeyDown}
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !busy) onClose?.();
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="compile-dialog">
-        <header className="compile-dialog__header">
+      <div className="compile-dialog" role="dialog" aria-modal="true" aria-label="Proje Derle">
+        <header className="compile-dialog__head">
           <h2>Derle ve Dışa Aktar</h2>
-          <button type="button" className="compile-close" onClick={onClose} disabled={busy} aria-label="Kapat">
+          <button type="button" className="compile-dialog__close" aria-label="Kapat" onClick={onClose}>
             ×
           </button>
         </header>
 
         <div className="compile-dialog__body">
-          {/* Format seçimi */}
-          <section className="compile-field">
-            <span className="compile-field__label">Çıktı Formatı</span>
-            <div className="compile-formats" role="radiogroup" aria-label="Format seçimi">
+          <section className="compile-section">
+            <h3 className="compile-section__title">Çıktı biçimi</h3>
+            <div className="format-cards">
               {FORMATS.map((f) => (
-                <label key={f.id} className={`compile-format${formatId === f.id ? ' compile-format--active' : ''}`}>
+                <label
+                  key={f.id}
+                  className={`format-card${format === f.id ? ' is-active' : ''}`}
+                >
                   <input
                     type="radio"
                     name="compile-format"
                     value={f.id}
-                    checked={formatId === f.id}
-                    onChange={() => setFormatId(f.id)}
+                    checked={format === f.id}
+                    onChange={() => setFormat(f.id)}
                   />
-                  {f.label}
+                  <span className="format-card__label">{f.label}</span>
+                  <span className="format-card__desc">{f.desc}</span>
                 </label>
               ))}
             </div>
           </section>
 
-          {/* Seçenekler */}
-          <section className="compile-field">
-            <label className="compile-checkbox">
-              <input type="checkbox" checked={includeTitles} onChange={(e) => setIncludeTitles(e.target.checked)} />
-              Doküman başlıklarını dahil et
+          <section className="compile-section">
+            <h3 className="compile-section__title">Kapsam</h3>
+            <select
+              className="compile-select"
+              value={scopeId}
+              onChange={(e) => setScopeId(e.target.value)}
+              aria-label="Derleme kapsamı"
+            >
+              {scopes.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {'\u00A0\u00A0'.repeat(s.depth)}
+                  {s.type === 'folder' ? '🗀 ' : s.type === 'root' ? '✦ ' : '📄 '}
+                  {s.title}
+                </option>
+              ))}
+            </select>
+          </section>
+
+          <section className="compile-section">
+            <h3 className="compile-section__title">Seçenekler</h3>
+            <label className="compile-check">
+              <input
+                type="checkbox"
+                checked={titlePage}
+                onChange={(e) => setTitlePage(e.target.checked)}
+              />
+              Kapak / başlık sayfası ekle
+            </label>
+            <label className="compile-check">
+              <input
+                type="checkbox"
+                checked={includeSynopsis}
+                onChange={(e) => setIncludeSynopsis(e.target.checked)}
+              />
+              Bölüm özetlerini dahil et
+            </label>
+            <label className="compile-field">
+              <span>Bölüm ayracı</span>
+              <input
+                type="text"
+                className="compile-separator"
+                value={separator}
+                onChange={(e) => setSeparator(e.target.value)}
+                aria-label="Bölümler arası ayraç"
+              />
             </label>
           </section>
-
-          {/* Doküman seçimi */}
-          <section className="compile-field">
-            <div className="compile-docs-head">
-              <span className="compile-field__label">Dokümanlar ({selectedCount}/{allDocs.length})</span>
-              <span className="compile-docs-actions">
-                <button type="button" className="compile-link-btn" onClick={selectAll}>
-                  Tümü
-                </button>
-                <button type="button" className="compile-link-btn" onClick={selectNone}>
-                  Hiçbiri
-                </button>
-              </span>
-            </div>
-            <ul className="compile-docs" aria-label="Derlenecek dokümanlar">
-              {allDocs.length === 0 && <li className="compile-docs-empty">Henüz doküman yok.</li>}
-              {allDocs.map((d) => (
-                <li key={d.id}>
-                  <label className="compile-doc-item">
-                    <input
-                      type="checkbox"
-                      checked={activeIds.includes(d.id)}
-                      onChange={() => toggleDoc(d.id)}
-                    />
-                    📄 {d.title}
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          {/* Sonuç mesajı */}
-          {result && (
-            <div
-              className={`compile-result${result.ok ? ' compile-result--ok' : result.canceled ? ' compile-result--info' : ' compile-result--error'}`}
-              role="status"
-            >
-              {result.ok
-                ? `✓ Dosya kaydedildi: ${result.path}`
-                : result.canceled
-                  ? 'İşlem iptal edildi.'
-                  : `✗ Hata: ${result.error}`}
-            </div>
-          )}
         </div>
 
-        <footer className="compile-dialog__footer">
-          <button type="button" className="compile-btn compile-btn--secondary" onClick={onClose} disabled={busy}>
+        <footer className="compile-dialog__foot">
+          <button type="button" className="btn btn--ghost" onClick={onClose}>
             Vazgeç
           </button>
-          <button
-            type="button"
-            className="compile-btn compile-btn--primary"
-            onClick={handleCompile}
-            disabled={busy || selectedCount === 0}
-          >
+          <button type="button" className="btn btn--primary" onClick={compile} disabled={busy}>
             {busy ? 'Derleniyor…' : 'Derle'}
           </button>
         </footer>
