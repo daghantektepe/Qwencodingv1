@@ -1,121 +1,203 @@
+/* ==========================================================================
+   OpenScriv — Faz 20: Outliner modern veri tablosu cilasi
+   Zebra satirlar, temiz etiket rozetleri, sutun hizalamalari.
+   Design-system token'lari fallback'li kullanim.
+   ========================================================================== */
+
 .outliner {
   display: flex;
   flex-direction: column;
   height: 100%;
-  color: var(--text-primary, #3c382e);
-  background: var(--bg-elevated, #ffffff);
-  font-size: 13px;
+  background: var(--bg-panel, #faf9f5);
+  color: var(--text-primary, #2f2b24);
+  overflow: hidden;
 }
 
-.outliner-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border, #d9d4c8);
-  background: var(--bg-panel, #fbfaf7);
-}
-
-.outliner-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.outliner-toolbar {
-  position: relative;
-}
-
-.outliner-columns-btn {
-  padding: 4px 10px;
-  border: 1px solid var(--border, #d9d4c8);
-  background: var(--bg-elevated, #ffffff);
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.outliner-menu {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  background: var(--bg-elevated, #ffffff);
-  border: 1px solid var(--border-strong, #b9b09c);
-  border-radius: 6px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
-  padding: 8px 12px;
-  z-index: 10;
-  min-width: 140px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.outliner-table-wrap {
+.outliner__scroll {
   flex: 1;
   overflow: auto;
 }
 
-.outliner-table {
+.outliner__empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-6, 32px);
+  color: var(--text-muted, #948b78);
+  font-style: italic;
+  font-size: var(--fs-sm, 0.82rem);
+}
+
+/* --- Tablo --- */
+
+.outliner__table {
   width: 100%;
   border-collapse: collapse;
-  text-align: left;
+  font-size: var(--fs-sm, 0.82rem);
 }
 
-.outliner-table th {
-  padding: 8px 12px;
-  background: var(--bg-panel, #fbfaf7);
-  border-bottom: 2px solid var(--border, #d9d4c8);
-  font-weight: 600;
-  font-size: 12px;
+.outliner__table thead th {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 1;
+  background: var(--bg-header, #ece8dd);
+  border-bottom: 2px solid var(--border, #ddd6c8);
+  padding: 0;
+  text-align: left;
+  white-space: nowrap;
 }
 
-.outliner-row {
-  border-bottom: 1px solid var(--border, #d9d4c8);
+.outliner__sort {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 10px var(--sp-3, 12px);
+  font: inherit;
+  font-weight: 700;
+  font-size: var(--fs-xs, 0.72rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted, #948b78);
   cursor: pointer;
-  transition: background 0.1s;
+  text-align: inherit;
+  transition: color var(--dur-fast, 120ms) var(--ease-out, ease),
+    background-color var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+
+.outliner__sort:hover {
+  color: var(--text-primary, #2f2b24);
+  background: var(--bg-hover, #efeadf);
+}
+
+/* --- Sutun hizalama kurallari --- */
+
+.col-title    { min-width: 220px; }
+.col-status   { width: 120px; }
+.col-synopsis { width: auto; }
+.col-words    { width: 90px;  text-align: right; }
+.col-modified { width: 130px; text-align: right; }
+
+.outliner__table td.col-words,
+.outliner__table td.col-modified {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary, #6b6455);
+}
+
+.outliner__table thead .col-words .outliner__sort,
+.outliner__table thead .col-modified .outliner__sort {
+  text-align: right;
+}
+
+/* --- Satirlar: zebra + secim + hover --- */
+
+.outliner-row {
+  cursor: pointer;
+  transition: background-color var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+
+.outliner-row.is-zebra {
+  background: var(--bg-elevated, #ffffff);
 }
 
 .outliner-row:hover {
-  background: var(--bg-hover, #f2eee3);
+  background: var(--bg-hover, #efeadf);
 }
 
-.outliner-row--selected {
-  background: var(--bg-selected, #dfd8c6) !important;
+.outliner-row.is-selected {
+  background: var(--bg-selected, #e4ddcb);
+  box-shadow: inset 3px 0 0 var(--accent, #7a6c4f);
 }
 
-.outliner-row--folder {
-  font-weight: 600;
+.outliner-row td {
+  padding: 9px var(--sp-3, 12px);
+  border-bottom: 1px solid var(--border, #ddd6c8);
+  vertical-align: middle;
+  max-width: 0; /* uzun synopsis'in table'i bozmasini engelle */
 }
 
-.outliner-cell {
-  padding: 8px 12px;
-  font-size: 13px;
+.outliner-row.is-folder .outliner__cell-text {
+  font-weight: 700;
+  color: var(--text-secondary, #6b6455);
+}
+
+/* --- Hücre içeriği --- */
+
+.outliner__indent {
+  display: inline-block;
   vertical-align: middle;
 }
 
-.outliner-cell--title {
-  display: flex;
-  align-items: center;
+.outliner__glyph {
+  margin-right: 6px;
+  font-size: var(--fs-sm, 0.82rem);
+  opacity: 0.75;
 }
 
-.outliner-indent {
+.outliner__cell-text {
   display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
-.outliner-tag {
+.outliner__synopsis {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary, #6b6455);
+}
+
+.outliner__synopsis.is-empty {
+  color: var(--text-muted, #948b78);
+  font-style: italic;
+}
+
+.outliner__cell-input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  color: var(--text-primary, #2f2b24);
+  background: var(--bg-elevated, #ffffff);
+  border: 1px solid var(--border-focus, #8a7f66);
+  border-radius: var(--r-sm, 6px);
+  padding: 3px 8px;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft, rgba(122, 108, 79, 0.12));
+}
+
+/* --- Durum rozetleri (temiz etiketler) --- */
+
+.ol-chip {
   display: inline-block;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 11px;
-  background: var(--bg-hover, #f2eee3);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: var(--r-pill, 999px);
+  color: #ffffff;
+  white-space: nowrap;
 }
 
-.outliner-empty {
-  padding: 32px;
-  text-align: center;
-  color: var(--text-muted, #8a7f66);
+.ol-chip--idea     { background: #8a8f98; }
+.ol-chip--outline  { background: #4f7ca8; }
+.ol-chip--draft    { background: #c98a2d; }
+.ol-chip--revision { background: #9a5aa8; }
+.ol-chip--done     { background: #3f8f4f; }
+.ol-chip--stub     { background: #b8473f; }
+.ol-chip--none     { background: #cfc8b8; color: #6b6455; }
+
+/* --- Azaltılmış hareket tercihi --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .outliner *,
+  .outliner *::before,
+  .outliner *::after {
+    transition-duration: 1ms !important;
+  }
 }

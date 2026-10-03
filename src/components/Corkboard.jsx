@@ -1,208 +1,194 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import './Corkboard.css';
 
 /**
- * Corkboard — Faz 7: secili klasorun cocuklari icin index-card (mantar panosu)
- * gorunumu. Her kart dugumun basligini ve synopsis'unu gosterir; synopsis kart
- * uzerinden duzenlenebilir.
+ * Corkboard — Faz 20: Mantar Pano görünümü (Scrivener kalitesinde index kartları).
+ *
+ * Özellikler:
+ *  - Mantar doku hissi veren pano zemini (saf CSS gradient; görsel dosya yok).
+ *  - Index kartlarında zarif "raptiye" (CSS ile çizilmiş, SVG/emoji bağımlılıksız).
+ *  - Durum renk şeridi (meta.status → kırmızı/turuncu/yeşil/mavi/gri şerit).
+ *  - Pürüzsüz hover gölgesi + hafif kalkma animasyonu.
+ *  - Kart üstünde synopsis alanı: çift tıkla veya ✎ ile satır içi düzenleme.
+ *  - Klavye: Enter kartı açar, F2 synopsis'i düzenlemeye alır.
  *
  * props:
- *   folder: { id, type:'folder', title, children: Node[] } | null
- *         — Binder'dan secilen klasor; null ise bos durum gosterilir.
- *   onSelectNode: (node) => void
- *         — karta tiklaninca ilgili dokumanin editorda acilmasi icin.
- *   onUpdateSynopsis?: (nodeId, newSynopsis) => void
- *         — kart uzerinden synopsis duzenlenince cagrilir (metadata state'ine yazar).
+ *   nodes: Doc[] — { id, title, content?, synopsis?, status?, metadata? }
+ *   onOpenNode?: (node) => void — kart başlığına çift tıklayınca editörde aç
+ *   onUpdateSynopsis?: (docId, synopsis) => void
+ *   statuses?: Record<string,string> — durum anahtar → etiket eşlemesi
  */
 
-function getMeta(node) {
-  return node?.metadata || {};
-}
-
-const LABEL_COLORS = {
-  Kirmizi: '#e05c5c',
-  Yesil: '#4caf72',
-  Mavi: '#4a90d9',
-  Sari: '#e6c34a',
-  Turuncu: '#e88b3f',
-  Mor: '#9b59b6',
+const DEFAULT_STATUSES = {
+  idea: 'Fikir',
+  outline: 'Taslak',
+  draft: 'Taslak Metin',
+  revision: 'Revizyon',
+  done: 'Tamam',
+  stub: 'Eksik',
 };
 
-function Card({ node, onSelectNode, onUpdateSynopsis }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(getMeta(node).synopsis || '');
-
-  // Dis dunya (Inspector vb.) synopsis degistirirse draft'i senkronla
-  useEffect(() => {
-    if (!editing) {
-      setDraft(getMeta(node).synopsis || '');
-    }
-  }, [node, editing]);
-
-  const meta = getMeta(node);
-  const status = meta.status || '';
-  const labels = Array.isArray(meta.labels) ? meta.labels : [];
-  const keywords = Array.isArray(meta.keywords) ? meta.keywords : [];
-  const synopsis = meta.synopsis || '';
-
-  const handleStartEdit = useCallback(
-    (e) => {
-      e.stopPropagation();
-      setDraft(synopsis);
-      setEditing(true);
-    },
-    [synopsis]
-  );
-
-  const handleCommit = useCallback(() => {
-    setEditing(false);
-    if (typeof onUpdateSynopsis === 'function' && draft !== synopsis) {
-      onUpdateSynopsis(node.id, draft.trim());
-    }
-  }, [draft, synopsis, node.id, onUpdateSynopsis]);
-
-  const handleKeyDown = useCallback(
-    (e) => {
-      if (e.key === 'Escape') {
-        setDraft(synopsis);
-        setEditing(false);
-      } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        handleCommit();
-      }
-    },
-    [synopsis, handleCommit]
-  );
-
-  const isDoc = node.type === 'doc';
-
-  return (
-    <li
-      className="cork-card"
-      onClick={() => isDoc && onSelectNode && onSelectNode(node)}
-      onKeyDown={(e) => {
-        if ((e.key === 'Enter' || e.key === ' ') && isDoc) {
-          e.preventDefault();
-          onSelectNode && onSelectNode(node);
-        }
-      }}
-      tabIndex={0}
-      role="button"
-      aria-label={`${node.title} kartı`}
-      style={{ cursor: isDoc ? 'pointer' : 'default' }}
-    >
-      {/* Iğne görseli */}
-      <span className="cork-card__pin" aria-hidden="true">📌</span>
-
-      <header className="cork-card__header">
-        <h3 className="cork-card__title">{node.title}</h3>
-        {status && <span className="cork-card__status">{status}</span>}
-      </header>
-
-      {/* Etiket noktaları */}
-      {labels.length > 0 && (
-        <div className="cork-card__labels" aria-label="Etiketler">
-          {labels.map((l) => (
-            <span
-              key={l}
-              className="cork-card__label-dot"
-              style={{ backgroundColor: LABEL_COLORS[l] || '#999' }}
-              title={l}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Synopsis alani — kart uzerinden duzenlenebilir */}
-      <div className="cork-card__body">
-        {editing ? (
-          <textarea
-            className="cork-card__synopsis-input"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={handleCommit}
-            onKeyDown={handleKeyDown}
-            autoFocus
-            placeholder="Bu bölümün kısa özeti..."
-            aria-label={`${node.title} synopsis düzenleme`}
-          />
-        ) : (
-          <p
-            className={`cork-card__synopsis${synopsis ? '' : ' cork-card__synopsis--empty'}`}
-            onDoubleClick={handleStartEdit}
-            title="Çift tıklayarak düzenleyin"
-          >
-            {synopsis || 'Synopsis yok — çift tıklayın.'}
-          </p>
-        )}
-      </div>
-
-      {/* Anahtar kelimeler */}
-      {keywords.length > 0 && (
-        <footer className="cork-card__keywords" aria-label="Anahtar kelimeler">
-          {keywords.map((kw) => (
-            <span key={kw} className="cork-card__keyword">
-              {kw}
-            </span>
-          ))}
-        </footer>
-      )}
-
-      {/* Duzenleme ipucu butonu */}
-      <button
-        type="button"
-        className="cork-card__edit-btn"
-        onClick={handleStartEdit}
-        aria-label="Synopsis'u düzenle"
-        title="Synopsis'u düzenle"
-      >
-        ✎
-      </button>
-    </li>
-  );
+function normalizeStatus(node) {
+  const raw = node?.status || node?.metadata?.status || 'none';
+  return String(raw).toLowerCase();
 }
 
-export default function Corkboard({ folder = null, onSelectNode, onUpdateSynopsis }) {
-  // Bos durum: klasor secilmedi
-  if (!folder || folder.type !== 'folder') {
+/**
+ * @param {object} props
+ * @param {any} [props.folder]
+ * @param {any[]} [props.nodes]
+ * @param {((node: any) => void)} [props.onSelectNode]
+ * @param {((node: any) => void)} [props.onOpenNode]
+ * @param {((docId: string, synopsis: string) => void)} [props.onUpdateSynopsis]
+ * @param {Record<string, string>} [props.statuses]
+ */
+export default function Corkboard({
+  folder = null,
+  nodes = null,
+  onSelectNode = undefined,
+  onOpenNode = undefined,
+  onUpdateSynopsis = undefined,
+  statuses = DEFAULT_STATUSES,
+}) {
+  const [editingId, setEditingId] = useState(null);
+  const [draft, setDraft] = useState('');
+  const [hoverId, setHoverId] = useState(null);
+
+  const rawNodes = useMemo(() => {
+    if (Array.isArray(nodes)) return nodes;
+    if (folder && Array.isArray(folder.children)) return folder.children;
+    return [];
+  }, [folder, nodes]);
+
+  const startEdit = useCallback((node) => {
+    setEditingId(node.id);
+    setDraft(node.synopsis ?? node.metadata?.synopsis ?? '');
+  }, []);
+
+  const commitEdit = useCallback(
+    (id) => {
+      if (typeof onUpdateSynopsis === 'function') {
+        onUpdateSynopsis(id, draft.trim());
+      }
+      setEditingId(null);
+      setDraft('');
+    },
+    [draft, onUpdateSynopsis]
+  );
+
+  const openNode = useCallback(
+    (node) => {
+      if (typeof onSelectNode === 'function') onSelectNode(node);
+      else if (typeof onOpenNode === 'function') onOpenNode(node);
+    },
+    [onOpenNode, onSelectNode]
+  );
+
+  const cards = useMemo(() => rawNodes.filter((n) => n && (n.type === 'doc' || !n.type)), [rawNodes]);
+
+  if (cards.length === 0) {
     return (
-      <section className="corkboard corkboard--empty" aria-label="Corkboard">
-        <div className="corkboard-empty-state">
-          <span className="corkboard-empty-icon" aria-hidden="true">🗂️</span>
-          <h2>Corkboard</h2>
-          <p>Kartlarını görmek için Binder'dan bir klasör seçin.</p>
+      <section className="corkboard" aria-label="Mantar pano">
+        <div className="corkboard__empty">
+          <p>Görüntülenecek kart yok. Binder'dan bir klasör seçin.</p>
         </div>
       </section>
     );
   }
 
-  const children = Array.isArray(folder.children) ? folder.children : [];
-
   return (
-    <section className="corkboard" aria-label={`Corkboard - ${folder.title}`}>
-      <header className="corkboard-header">
-        <h2 className="corkboard-header__title">{folder.title}</h2>
-        <span className="corkboard-header__count">
-          {children.length} kart
-        </span>
-      </header>
+    <section className="corkboard" role="list" aria-label="Mantar pano kartları">
+      {cards.map((node) => {
+        const st = normalizeStatus(node);
+        const isEditing = editingId === node.id;
+        const synopsis = node.synopsis ?? node.metadata?.synopsis ?? '';
+        const pinColor = `hsl(${(String(node.id).charCodeAt(0) * 37) % 360} 45% 42%)`;
 
-      {children.length === 0 ? (
-        <div className="corkboard-empty-folder">
-          <p>Bu klasörde henüz kart yok. Yeni bir doküman ekleyin.</p>
-        </div>
-      ) : (
-        <ul className="corkboard-grid" role="list">
-          {children.map((child) => (
-            <Card
-              key={child.id}
-              node={child}
-              onSelectNode={onSelectNode}
-              onUpdateSynopsis={onUpdateSynopsis}
-            />
-          ))}
-        </ul>
-      )}
+        return (
+          <article
+            key={node.id}
+            role="listitem"
+            className={`index-card status-${st}${hoverId === node.id ? ' is-hovered' : ''}`}
+            onMouseEnter={() => setHoverId(node.id)}
+            onMouseLeave={() => setHoverId((v) => (v === node.id ? null : v))}
+            onKeyDown={(e) => {
+              if (isEditing) return;
+              if (e.key === 'Enter') openNode(node);
+              if (e.key === 'F2') {
+                e.preventDefault();
+                startEdit(node);
+              }
+            }}
+            tabIndex={0}
+            aria-label={`${node.title}, durum: ${statuses[st] || st}`}
+          >
+            {/* Raptiye */}
+            <span className="index-card__pin" aria-hidden="true">
+              <span className="index-card__pin-head" style={{ '--pin-color': pinColor }} />
+              <span className="index-card__pin-shadow" />
+            </span>
+
+            {/* Durum renk şeridi */}
+            <span className={`index-card__stripe stripe-${st}`} aria-hidden="true" />
+
+            <header
+              className="index-card__title"
+              onDoubleClick={() => openNode(node)}
+              title="Dokümanı açmak için çift tıklayın"
+            >
+              {node.title}
+            </header>
+
+            <div className="index-card__body">
+              {isEditing ? (
+                <textarea
+                  className="index-card__synopsis-input"
+                  value={draft}
+                  autoFocus
+                  rows={4}
+                  placeholder="Konu özeti…"
+                  aria-label={`${node.title} konusu`}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onBlur={() => commitEdit(node.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) commitEdit(node.id);
+                    if (e.key === 'Escape') {
+                      setEditingId(null);
+                      setDraft('');
+                    }
+                  }}
+                />
+              ) : (
+                <p
+                  className={`index-card__synopsis${!synopsis ? ' is-empty' : ''}`}
+                  onClick={() => startEdit(node)}
+                  title="Özeti düzenlemek için tıklayın"
+                >
+                  {synopsis || 'Özet eklemek için buraya tıklayın…'}
+                </p>
+              )}
+            </div>
+
+            <footer className="index-card__foot">
+              <span className={`status-chip chip-${st}`}>{statuses[st] || st}</span>
+              {!isEditing && (
+                <button
+                  type="button"
+                  className="index-card__edit-btn"
+                  title="Özeti düzenle (F2)"
+                  aria-label={`${node.title} özetini düzenle`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startEdit(node);
+                  }}
+                >
+                  ✎
+                </button>
+              )}
+            </footer>
+          </article>
+        );
+      })}
     </section>
   );
 }
