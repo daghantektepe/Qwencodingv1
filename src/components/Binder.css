@@ -1,97 +1,226 @@
+/* ==========================================================================
+   OpenScriv — Binder paneli (Faz 3 mantigi + Faz 17 design system token'lari)
+   Renkler/olculer src/theme.js veya ui/styles.css'teki CSS custom
+   property'lerden gelir; fallback degerlar satir icinde verilir.
+   ========================================================================== */
+
 .binder {
-  width: 250px;
-  height: 100%;
-  background-color: #f9f9f9;
-  border-right: 1px solid #ddd;
   display: flex;
   flex-direction: column;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  height: 100%;
+  background: var(--bg-panel, #faf9f5);
+  color: var(--text-primary, #2f2b24);
   overflow: hidden;
 }
 
+/* --- Ust baslik + arama --- */
+
 .binder-header {
-  padding: 10px 15px;
-  border-bottom: 1px solid #eee;
-  background-color: #fff;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2, 8px);
+  padding: var(--sp-3, 12px) var(--sp-4, 16px);
+  border-bottom: 1px solid var(--border, #ddd6c8);
+  background: var(--bg-header, #ece8dd);
 }
 
 .binder-header__title {
   margin: 0;
-  font-size: 14px;
-  color: #333;
+  font-size: var(--fs-xs, 0.72rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: var(--text-muted, #948b78);
+}
+
+.binder-search-wrap {
+  display: flex;
+}
+
+.binder-search {
+  width: 100%;
+  padding: 6px var(--sp-3, 12px);
+  font-family: inherit;
+  font-size: var(--fs-sm, 0.82rem);
+  color: var(--text-primary, #2f2b24);
+  background: var(--bg-elevated, #ffffff);
+  border: 1px solid var(--border, #ddd6c8);
+  border-radius: var(--r-sm, 6px);
+  outline: none;
+  transition: border-color var(--dur-fast, 120ms) var(--ease-out, ease),
+    box-shadow var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+
+.binder-search:focus {
+  border-color: var(--border-focus, #8a7f66);
+  box-shadow: 0 0 0 3px var(--accent-soft, rgba(122, 108, 79, 0.12));
+}
+
+/* --- Agac --- */
+
+.binder-tree,
+.binder-children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .binder-tree {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  overflow-y: auto;
   flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-2, 8px) var(--sp-2, 8px) var(--sp-4, 16px);
 }
 
 .binder-node {
-  margin: 0;
+  position: relative;
 }
 
 .binder-row {
   display: flex;
   align-items: center;
-  padding: 6px 10px;
+  gap: var(--sp-2, 8px);
+  padding: 6px var(--sp-2, 8px);
+  margin: 1px var(--sp-1, 4px);
+  border-radius: var(--r-sm, 6px);
   cursor: pointer;
-  user-select: none;
-  transition: background-color 0.1s ease;
+  outline-offset: -2px;
+  transition: background-color var(--dur-fast, 120ms) var(--ease-out, ease),
+    box-shadow var(--dur-fast, 120ms) var(--ease-out, ease);
 }
 
 .binder-row:hover {
-  background-color: #eef2ff;
+  background: var(--bg-hover, #efeadf);
 }
 
-.binder-row--selected {
-  background-color: #dbeafe;
-  color: #1e40af;
-  font-weight: 500;
+.binder-node.is-selected > .binder-row {
+  background: var(--bg-selected, #e4ddcb);
+  box-shadow: inset 2px 0 0 var(--accent, #7a6c4f);
 }
 
-.binder-icon {
-  margin-right: 8px;
-  font-size: 14px;
+.binder-node.is-dragover > .binder-row {
+  background: var(--accent-soft, rgba(122, 108, 79, 0.12));
+  outline: 1px dashed var(--accent, #7a6c4f);
+  outline-offset: -1px;
 }
+
+/* --- Caret (klasor ac/kapa oku) --- */
 
 .binder-caret {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  line-height: 12px;
+  flex: 0 0 auto;
+  width: 14px;
   text-align: center;
-  margin-right: 4px;
-  transform: rotate(0deg);
-  transition: transform 0.2s ease;
-  font-size: 10px;
-  color: #666;
+  font-size: var(--fs-xs, 0.72rem);
+  color: var(--text-muted, #948b78);
+  transition: transform var(--dur-fast, 120ms) var(--ease-out, ease);
 }
 
 .binder-caret--open {
   transform: rotate(90deg);
 }
 
+.binder-caret--placeholder {
+  visibility: hidden;
+}
+
+.binder-icon {
+  flex: 0 0 auto;
+  font-size: var(--fs-md, 0.9rem);
+}
+
 .binder-title {
+  flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 13px;
+  font-size: var(--fs-sm, 0.82rem);
 }
 
-.binder-children {
-  list-style: none;
-  padding-left: 0;
-  margin: 0;
+.binder-node--folder > .binder-row .binder-title {
+  font-weight: 600;
+  color: var(--text-secondary, #6b6455);
 }
+
+.binder-meta {
+  flex: 0 0 auto;
+  font-size: var(--fs-xs, 0.72rem);
+  color: var(--text-muted, #948b78);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Satir ici aksiyon butonlari (hover'da belirgin) --- */
+
+.binder-actions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+
+.binder-row:hover .binder-actions,
+.binder-row:focus-within .binder-actions {
+  opacity: 1;
+}
+
+.binder-action-btn {
+  border: none;
+  background: transparent;
+  padding: 2px 4px;
+  font-size: var(--fs-xs, 0.72rem);
+  line-height: 1;
+  border-radius: var(--r-sm, 6px);
+  color: var(--text-secondary, #6b6455);
+  transition: background-color var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+
+.binder-action-btn:hover {
+  background: var(--bg-elevated, #ffffff);
+  box-shadow: var(--shadow-xs, 0 1px 2px rgba(31, 26, 16, 0.06));
+}
+
+.binder-action-btn--danger:hover {
+  color: var(--danger, #9c3a3a);
+  background: var(--danger-soft, #fbeaea);
+}
+
+/* --- Yeniden adlandirma inputu --- */
+
+.binder-rename-input {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: var(--fs-sm, 0.82rem);
+  color: var(--text-primary, #2f2b24);
+  background: var(--bg-elevated, #ffffff);
+  border: 1px solid var(--border-focus, #8a7f66);
+  border-radius: var(--r-sm, 6px);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft, rgba(122, 108, 79, 0.12));
+}
+
+/* --- Bos durum --- */
 
 .binder-empty {
-  padding: 20px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-6, 32px);
+  color: var(--text-muted, #948b78);
+  font-style: italic;
+  font-size: var(--fs-sm, 0.82rem);
   text-align: center;
-  color: #888;
-  font-size: 13px;
+}
+
+/* --- Azaltilmis hareket tercihi --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .binder *,
+  .binder *::before,
+  .binder *::after {
+    transition-duration: 1ms !important;
+  }
 }
