@@ -14,19 +14,30 @@ button { cursor: pointer; }
   display: grid;
   grid-template-columns: 280px minmax(420px, 1fr) 300px;
   height: 100vh;
-  background: #f4f1ea;
-  color: #27241f;
+  background: var(--bg-app, #f4f1ea);
+  color: var(--text-primary, #27241f);
+  transition: background var(--dur-med, 200ms) var(--ease-out, ease),
+              color var(--dur-med, 200ms) var(--ease-out, ease);
 }
-.app.dark { background: #1f2428; color: #f5f0e7; color-scheme: dark; }
+.app.dark {
+  background: var(--bg-app, #1f2428);
+  color: var(--text-primary, #f5f0e7);
+  color-scheme: dark;
+}
 
 .sidebar, .inspector {
-  background: #ebe4d8;
-  border-right: 1px solid #d7ccbc;
+  background: var(--bg-panel, #ebe4d8);
+  border-right: 1px solid var(--border, #d7ccbc);
   padding: 16px;
   overflow: auto;
+  transition: background var(--dur-med, 200ms) var(--ease-out, ease),
+              border-color var(--dur-med, 200ms) var(--ease-out, ease);
 }
-.inspector { border-right: 0; border-left: 1px solid #d7ccbc; }
-.dark .sidebar, .dark .inspector { background: #292f33; border-color: #3b444b; }
+.inspector { border-right: 0; border-left: 1px solid var(--border, #d7ccbc); }
+.dark .sidebar, .dark .inspector {
+  background: var(--bg-panel, #292f33);
+  border-color: var(--border, #3b444b);
+}
 
 .brand, .toolbar, .panel-heading, .toolbar-actions {
   display: flex;
