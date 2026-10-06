@@ -1,306 +1,178 @@
 /* ==========================================================================
-   OpenScriv — Faz 19: Ana Editör ve Tipografi Cilasi
-   Lüks, ferah, dikişsiz bir daktilo/yazı yüzeyi.
-   Tüm renkler/ölçüler design-system token'larından gelir (fallback'lı).
+   OpenScriv — Editor cilasi (Faz 31: gercek durum makinesi rozeti)
    ========================================================================== */
 
 .editor {
-  position: relative;
-  flex: 1;
-  min-width: 0;
   display: flex;
-  justify-content: center;
-  background: var(--bg-app, #f4f2ed);
-  overflow-y: auto;
-  padding: var(--sp-6, 32px) var(--sp-5, 24px);
-  transition: padding var(--dur-med, 220ms) var(--ease-out, ease),
-    background-color var(--dur-med, 220ms) var(--ease-out, ease);
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-editor, #fffdf7);
 }
-
-/* --- Bos durum --- */
 
 .editor--empty {
   align-items: center;
-}
-
-.editor__placeholder {
-  text-align: center;
+  justify-content: center;
   color: var(--text-muted, #948b78);
-  max-width: 380px;
-  animation: editor-fade-in 400ms var(--ease-out, ease);
+  font-style: italic;
 }
 
-.editor__placeholder-icon {
-  font-size: 2.4rem;
-  display: block;
-  margin-bottom: var(--sp-3, 12px);
-  opacity: 0.7;
-}
-
-.editor__placeholder h2 {
-  margin: 0 0 var(--sp-2, 8px);
-  font-family: var(--font-serif, Georgia, serif);
-  font-weight: 600;
-  font-size: var(--fs-xl, 1.35rem);
+.editor--empty kbd {
+  font-family: ui-monospace, monospace;
+  border: 1px solid var(--border-strong, #c4bba6);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 5px;
+  background: var(--bg-elevated, #fff);
   color: var(--text-secondary, #6b6455);
+  font-style: normal;
 }
 
-.editor__placeholder p {
-  margin: 0;
-  font-size: var(--fs-sm, 0.82rem);
-  line-height: 1.6;
-}
-
-@keyframes editor-fade-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* --- Kağıt yüzeyi --- */
-
-.editor__paper {
-  position: relative;
-  width: 100%;
-  max-width: 72ch;
-  background: var(--bg-elevated, #ffffff);
-  border: 1px solid var(--border, #ddd6c8);
-  border-radius: var(--r-lg, 14px);
-  box-shadow: var(--shadow-md, 0 6px 18px rgba(31, 26, 16, 0.1));
-  padding: var(--sp-7, 48px) var(--sp-6, 32px) var(--sp-6, 32px);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4, 16px);
-  transition: box-shadow var(--dur-med, 220ms) var(--ease-out, ease),
-    border-color var(--dur-med, 220ms) var(--ease-out, ease),
-    max-width var(--dur-med, 220ms) var(--ease-out, ease);
-}
-
-/* Odak modunda kağıt nefes alır: kenar çizgisi yumuşar, golge hafifler */
-.editor[data-focus-mode='true'] {
-  padding: var(--sp-7, 48px) var(--sp-4, 16px);
-}
-
-.editor[data-focus-mode='true'] .editor__paper {
-  border-color: transparent;
-  box-shadow: var(--shadow-sm, 0 2px 6px rgba(31, 26, 16, 0.08));
-  background: var(--bg-panel, #faf9f5);
-}
-
-/* --- Başlık alanı --- */
+/* --- Baslik + kayit durumu --- */
 
 .editor__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--sp-4, 16px);
-  padding-bottom: var(--sp-3, 12px);
-  border-bottom: 1px solid var(--border, #ddd6c8);
+  gap: var(--sp-3, 12px);
+  padding: 10px var(--sp-5, 24px) 6px;
+  border-bottom: 1px solid var(--border, #eee7d8);
 }
 
 .editor__title {
   margin: 0;
   font-family: var(--font-serif, Georgia, serif);
-  font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  line-height: 1.3;
+  font-size: var(--fs-lg, 1.15rem);
+  font-weight: 700;
   color: var(--text-primary, #2f2b24);
   cursor: text;
-  border-radius: var(--r-sm, 6px);
-  padding: 2px 6px;
-  margin-left: -6px; /* görsel hizayı koru */
-  transition: background-color var(--dur-fast, 120ms) var(--ease-out, ease);
-}
-
-.editor__title:hover {
-  background: var(--bg-hover, #efeadf);
-}
-
-.editor__title:focus-visible {
-  outline: 2px solid var(--accent, #7a6c4f);
-  outline-offset: 2px;
 }
 
 .editor__title-input {
-  flex: 1;
+  font: inherit;
   font-family: var(--font-serif, Georgia, serif);
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: var(--fs-lg, 1.15rem);
+  font-weight: 700;
   color: var(--text-primary, #2f2b24);
-  background: var(--bg-elevated, #ffffff);
   border: 1px solid var(--border-focus, #8a7f66);
   border-radius: var(--r-sm, 6px);
+  background: var(--bg-elevated, #fff);
   padding: 2px 8px;
   outline: none;
-  box-shadow: 0 0 0 3px var(--accent-soft, rgba(122, 108, 79, 0.12));
+  max-width: 60%;
 }
 
-/* --- Hedef ilerleme çubuğu (başlık yanında mini) --- */
+.editor__save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-xs, 0.74rem);
+  color: var(--text-muted, #948b78);
+  white-space: nowrap;
+}
+
+.editor__save-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.editor__save--dirty { color: #b07d2b; }
+.editor__save--saving { color: #4c6e91; }
+.editor__save--saving .editor__save-dot { animation: ed-pulse 900ms infinite; }
+.editor__save--saved { color: #2e6b3e; }
+.editor__save--error { color: #9c3a3a; font-weight: 700; }
+
+@keyframes ed-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(0.8); }
+}
+
+.editor__save-time {
+  font-style: normal;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Yazim yuzeyi --- */
+
+.editor__area {
+  flex: 1;
+  min-height: 0;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary, #2f2b24);
+  font-family: var(--editor-font, 'Iowan Old Style', 'Palatino Linotype', Georgia, serif);
+  font-size: var(--editor-font-size, 17px);
+  line-height: var(--editor-line-height, 1.7);
+  padding: var(--sp-5, 24px) clamp(var(--sp-5, 24px), 10vw, 120px);
+  caret-color: var(--accent, #7a6c4f);
+}
+
+.editor__area::placeholder {
+  color: var(--text-faint, #b8ae9a);
+  font-style: italic;
+}
+
+/* --- Alt serit --- */
+
+.editor__foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-4, 16px);
+  padding: 6px var(--sp-5, 24px) 10px;
+  border-top: 1px solid var(--border, #eee7d8);
+}
+
+.editor__count {
+  font-size: var(--fs-xs, 0.74rem);
+  color: var(--text-muted, #948b78);
+  font-variant-numeric: tabular-nums;
+}
 
 .editor__target {
   position: relative;
-  flex: 0 0 140px;
-  height: 8px;
-  background: var(--bg-hover, #efeadf);
-  border: 1px solid var(--border, #ddd6c8);
-  border-radius: var(--r-pill, 999px);
-  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
 }
 
-.editor__target-bar {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent, #7a6c4f), var(--accent-hover, #655a42));
-  border-radius: inherit;
-  transition: width var(--dur-med, 220ms) var(--ease-out, ease);
+.editor__target svg {
+  width: 34px;
+  height: 34px;
+  transform: rotate(-90deg);
 }
 
-.editor__target-bar.is-done {
-  background: linear-gradient(90deg, var(--success, #2e6b3e), var(--success, #2e6b3e));
+.editor__ring-bg {
+  stroke: var(--border, #e5ddca);
+  stroke-width: 3;
 }
 
-.editor__target-label {
+.editor__ring-fg {
+  stroke: var(--accent, #7a6c4f);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dasharray var(--dur-med, 220ms) var(--ease-out, ease);
+}
+
+.editor__target em {
   position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
+  font-style: normal;
   font-size: 9px;
   font-weight: 700;
   color: var(--text-secondary, #6b6455);
 }
 
-/* --- Daktilo yüzeyi --- */
-
-.editor__surface {
-  width: 100%;
-  min-height: 58vh;
-  resize: vertical;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--text-primary, #2f2b24);
-  caret-color: var(--accent, #7a6c4f);
-
-  /* Tipografi cilasi */
-  font-family: var(--font-serif, 'Lora', Georgia, 'Times New Roman', serif);
-  font-size: 1.08rem;
-  line-height: 1.85;
-  letter-spacing: 0.005em;
-  word-spacing: 0.06em;
-  hyphens: auto;
-  text-rendering: optimizeLegibility;
-}
-
-.editor__surface::selection {
-  background: var(--accent-soft, rgba(122, 108, 79, 0.12));
-}
-
-.editor__surface::placeholder {
-  color: var(--text-muted, #948b78);
-  font-style: italic;
-}
-
-/* Yazarken kağıda çok hafif "canlı" ışık */
-.editor--typing .editor__paper {
-  border-color: var(--border-strong, #c4bba6);
-}
-
-.editor--saving .editor__paper {
-  box-shadow: var(--shadow-lg, 0 14px 40px rgba(31, 26, 16, 0.16));
-}
-
-.editor--saved .editor__paper {
-  border-color: color-mix(in srgb, var(--success, #2e6b3e) 35%, var(--border, #ddd6c8));
-}
-
-/* --- Rozetler --- */
-
-.editor__badges {
-  position: sticky;
-  bottom: calc(var(--sp-2, 8px) * -1 + 2px);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-3, 12px);
-  pointer-events: none;
-}
-
-.save-badge,
-.count-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 12px;
-  font-size: var(--fs-xs, 0.72rem);
-  font-weight: 600;
-  border-radius: var(--r-pill, 999px);
-  background: var(--bg-panel, #faf9f5);
-  border: 1px solid var(--border, #ddd6c8);
-  box-shadow: var(--shadow-xs, 0 1px 2px rgba(31, 26, 16, 0.06));
-  color: var(--text-secondary, #6b6455);
-  transition: background-color var(--dur-med, 220ms) var(--ease-out, ease),
-    color var(--dur-med, 220ms) var(--ease-out, ease),
-    border-color var(--dur-med, 220ms) var(--ease-out, ease),
-    opacity var(--dur-med, 220ms) var(--ease-out, ease),
-    transform var(--dur-med, 220ms) var(--ease-out, ease);
-}
-
-.count-badge strong {
-  font-variant-numeric: tabular-nums;
-  color: var(--text-primary, #2f2b24);
-}
-
-/* Kayit durum varyantlari */
-
-.save-badge__dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--text-muted, #948b78);
-  transition: background-color var(--dur-fast, 120ms) var(--ease-out, ease);
-}
-
-.save-badge--idle {
-  opacity: 0.75;
-}
-
-.save-badge--typing .save-badge__dot {
-  background: var(--warning, #8a6d1f);
-}
-
-.save-badge--saving {
-  color: var(--text-primary, #2f2b24);
-}
-
-.save-badge--saving .save-badge__dot {
-  background: var(--accent, #7a6c4f);
-  animation: save-pulse 900ms ease-in-out infinite;
-}
-
-.save-badge--saved {
-  color: var(--success, #2e6b3e);
-  background: var(--success-soft, #e5f3e8);
-  border-color: color-mix(in srgb, var(--success, #2e6b3e) 35%, transparent);
-  transform: translateY(-1px);
-}
-
-.save-badge--saved .save-badge__dot {
-  background: var(--success, #2e6b3e);
-  animation: none;
-}
-
-@keyframes save-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.45; transform: scale(0.75); }
-}
-
-/* --- Azaltılmış hareket tercihi --- */
+/* --- Azaltilmis hareket --- */
 
 @media (prefers-reduced-motion: reduce) {
-  .editor *,
-  .editor *::before,
-  .editor *::after {
-    transition-duration: 1ms !important;
-    animation-duration: 1ms !important;
-    animation-iteration-count: 1 !important;
+  .editor__save--saving .editor__save-dot {
+    animation: none;
   }
 }

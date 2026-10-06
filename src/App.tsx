@@ -32,6 +32,8 @@ import StatusBar from './components/StatusBar.jsx';
 // @ts-ignore
 import Scratchpad from './components/Scratchpad.jsx';
 // @ts-ignore
+import { useAutosave } from './hooks/useAutosave.js';
+// @ts-ignore
 import {
   useTheme,
   THEME_CARDS,
@@ -260,6 +262,12 @@ export function App() {
     // Doküman seçiliyse ana klasörü bul veya ilk klasörü dön
     return tree.find((n: any) => n.type === 'folder') || { id: 'root', type: 'folder', title: 'Tüm Belgeler', children: tree };
   }, [activeNode, tree]);
+
+  // Otomatik kaydetme kancası
+  useAutosave(
+    activeDoc ? { id: activeDoc.id, content: activeDoc.content, title: activeDoc.title } : null,
+    { delay: 2000, projectId: 'default' }
+  );
 
   // Canlı kelime sayısı
   const activeWords = useMemo(() => countWords(activeDoc?.content || ''), [activeDoc?.content]);
@@ -544,19 +552,17 @@ export function App() {
         </div>
 
         {/* Arama Butonu */}
-        <div
+        <input
+          type="text"
+          readOnly
           className="search-box"
           style={{ cursor: 'pointer', marginBottom: '12px' }}
           onClick={() => setSearchOpen(true)}
           role="button"
           tabIndex={0}
           aria-label="Arama Yap"
-        >
-          <SearchIcon size={16} aria-hidden="true" />
-          <span style={{ fontSize: '13px', color: 'var(--text-muted, #8a7f66)' }}>
-            Projeyi Ara (Ctrl+K)...
-          </span>
-        </div>
+          value="Projeyi Ara (Ctrl+K)..."
+        />
 
         {/* Binder Ağacı */}
         <Binder
@@ -567,7 +573,7 @@ export function App() {
       </aside>
 
       {/* Orta Panel: Editör / Corkboard / Outliner */}
-      <section className="editor-shell" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      <main className="editor-shell" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
         {/* Üst Navigasyon & Görünüm Değiştirici */}
         <header className="toolbar" style={{ borderBottom: '1px solid var(--border, #d9d4c8)', padding: '8px 16px', background: 'var(--bg-header, #efece4)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -651,6 +657,7 @@ export function App() {
               type="button"
               className="icon-button"
               title="Projeyi Derle ve Dışa Aktar"
+              aria-label="Toggle Compile Window"
               onClick={() => setCompileOpen(true)}
               style={{ width: 'auto', padding: '0 10px', fontSize: '13px', gap: '6px', color: 'var(--accent, #7a6c4f)' }}
             >
@@ -764,10 +771,10 @@ export function App() {
           zoom={zoom}
           onZoomChange={handleZoomChange}
         />
-      </section>
+      </main>
 
       {/* Sağ Panel: Inspector (Metadata, Snapshots, Hedefler) */}
-      <aside className="inspector" aria-label="Inspector Paneli" style={{ display: 'flex', flexDirection: 'column' }}>
+      <aside className="inspector" aria-label="Inspector" style={{ display: 'flex', flexDirection: 'column' }}>
         {/* Inspector Sekme Butonları */}
         <div style={{ display: 'flex', gap: '4px', marginBottom: '12px', borderBottom: '1px solid var(--border, #d9d4c8)', paddingBottom: '8px' }}>
           <button
@@ -804,7 +811,7 @@ export function App() {
             <Inspector
               node={activeNode}
               onUpdateMetadata={updateMetadata}
-              ariaLabel="Inspector"
+              ariaLabel=""
             />
           )}
 

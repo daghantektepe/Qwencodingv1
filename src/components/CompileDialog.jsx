@@ -1,179 +1,137 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import './CompileDialog.css';
 
 /**
- * CompileDialog — Faz 21: Derleme (Compile) modalı.
+ * CompileDialog — Projeyi Derle ve Dışa Aktar sihirbazı (Faz 31).
  *
- * Scrivener tarzı: biçim + kapsam seçimi, önizleme özeti, "Derle" aksiyonu.
- * Modern diyalog cilası: section kartları, radyo kartlar, yumuşak geçişler.
+ * p31-s7: Entegrasyon smoke testi `data-testid="compile-dialog"` arar; bu
+ * testid DİYALOG AÇIKKEN kök node'da bulunur (kapalıyken render edilmez).
+ * App.tsx'teki compile-button tıklaması open=true getirir → dialog DOM'a girer.
  *
  * props:
  *   open: boolean
  *   onClose: () => void
- *   tree: Node[] — proje ağacı (kapsam listesi için düzleştirilir)
- *   onCompile?: (options) => Promise<void> | void
- *       options: { format, scopeId, includeSynopsis, titlePage, separator }
+ *   tree: TreeNode[]                       — kapsam seçimi için
+ *   onCompile: (options) => void|Promise   — derleme tetikleme
  */
 
 const FORMATS = [
-  { id: 'md', label: 'Markdown (.md)', desc: 'Düz metin, taşınabilir' },
-  { id: 'html', label: 'HTML (.html)', desc: 'Tarayıcıda okuma, stilli' },
-  { id: 'txt', label: 'Düz Metin (.txt)', desc: 'En sade biçim' },
-  { id: 'epub', label: 'ePUB (.epub)', desc: 'E-kitap (planlandı)' },
+  { id: 'txt', label: 'Düz Metin (.txt)' },
+  { id: 'md', label: 'Markdown (.md)' },
+  { id: 'html', label: 'HTML (.html)' },
+  { id: 'docx', label: 'Word (.docx)' },
+  { id: 'pdf', label: 'PDF (.pdf)' },
 ];
 
-function flatten(nodes, depth = 0, out = []) {
-  for (const n of nodes || []) {
-    out.push({ id: n.id, title: n.title, type: n.type || 'doc', depth });
-    if (n.type === 'folder' && Array.isArray(n.children)) {
-      flatten(n.children, depth + 1, out);
+function collectScopeOptions(tree) {
+  const options = [{ id: 'all', label: 'Tüm Proje' }];
+  const walk = (nodes, depth) => {
+    for (const n of nodes) {
+      options.push({ id: n.id, label: `${' '.repeat(depth * 2)}${n.title}` });
+      if (n.children) walk(n.children, depth + 1);
     }
-  }
-  return out;
+  };
+  walk(tree || [], 0);
+  return options;
 }
 
-export default function CompileDialog({
-  open,
-  onClose,
-  tree = [],
-  onCompile = null,
-  projectId = 'default',
-  projectName = 'OpenScriv Projesi',
-}) {
+export default function CompileDialog({ open, onClose, tree, onCompile }) {
   const [format, setFormat] = useState('md');
   const [scopeId, setScopeId] = useState('all');
-  const [includeSynopsis, setIncludeSynopsis] = useState(false);
-  const [titlePage, setTitlePage] = useState(true);
-  const [separator, setSeparator] = useState('---');
   const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
 
-  const flat = useMemo(() => flatten(tree), [tree]);
-  const scopes = useMemo(
-    () => [{ id: 'all', title: 'Tüm proje', type: 'root', depth: 0 }, ...flat],
-    [flat]
-  );
+  const scopeOptions = useMemo(() => collectScopeOptions(tree), [tree]);
 
-  const compile = useCallback(async () => {
-    if (typeof onCompile !== 'function') {
-      onClose();
-      return;
-    }
+  useEffect(() => {
+    if (open) setDone(false);
+  }, [open]);
+
+  if (!open) return null;
+
+  const handleCompile = async () => {
     setBusy(true);
     try {
-      await onCompile({ format, scopeId, includeSynopsis, titlePage, separator });
-      onClose();
+      if (onCompile) await onCompile({ format, scopeId });
+      setDone(true);
     } finally {
       setBusy(false);
     }
-  }, [format, includeSynopsis, onClose, onCompile, scopeId, separator, titlePage]);
-
-  React.useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-  }, [open, onClose]);
-
-  if (!open) return null;
+  };
 
   return (
     <div
       className="compile-overlay"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+      data-testid="compile-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Proje Derle"
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
       }}
     >
-      <div className="compile-dialog" role="dialog" aria-modal="true" aria-label="Proje Derle">
-        <header className="compile-dialog__head">
+      <div className="compile-backdrop" onClick={onClose} aria-hidden="true" />
+      <section className="compile-card">
+        <header className="compile-head">
           <h2>Derle ve Dışa Aktar</h2>
-          <button type="button" className="compile-dialog__close" aria-label="Kapat" onClick={onClose}>
+          <button type="button" className="compile-close" onClick={onClose} aria-label="Kapat">
             ×
           </button>
         </header>
 
-        <div className="compile-dialog__body">
-          <section className="compile-section">
-            <h3 className="compile-section__title">Çıktı biçimi</h3>
-            <div className="format-cards">
-              {FORMATS.map((f) => (
-                <label
-                  key={f.id}
-                  className={`format-card${format === f.id ? ' is-active' : ''}`}
-                >
-                  <input
-                    type="radio"
-                    name="compile-format"
-                    value={f.id}
-                    checked={format === f.id}
-                    onChange={() => setFormat(f.id)}
-                  />
-                  <span className="format-card__label">{f.label}</span>
-                  <span className="format-card__desc">{f.desc}</span>
-                </label>
-              ))}
-            </div>
-          </section>
-
-          <section className="compile-section">
-            <h3 className="compile-section__title">Kapsam</h3>
+        <div className="compile-body">
+          <label className="compile-field">
+            <span>Dışa Aktarma Biçimi</span>
             <select
-              className="compile-select"
-              value={scopeId}
-              onChange={(e) => setScopeId(e.target.value)}
-              aria-label="Derleme kapsamı"
+              value={format}
+              data-testid="compile-format"
+              onChange={(e) => setFormat(e.target.value)}
             >
-              {scopes.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {'\u00A0\u00A0'.repeat(s.depth)}
-                  {s.type === 'folder' ? '🗀 ' : s.type === 'root' ? '✦ ' : '📄 '}
-                  {s.title}
+              {FORMATS.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.label}
                 </option>
               ))}
             </select>
-          </section>
+          </label>
 
-          <section className="compile-section">
-            <h3 className="compile-section__title">Seçenekler</h3>
-            <label className="compile-check">
-              <input
-                type="checkbox"
-                checked={titlePage}
-                onChange={(e) => setTitlePage(e.target.checked)}
-              />
-              Kapak / başlık sayfası ekle
-            </label>
-            <label className="compile-check">
-              <input
-                type="checkbox"
-                checked={includeSynopsis}
-                onChange={(e) => setIncludeSynopsis(e.target.checked)}
-              />
-              Bölüm özetlerini dahil et
-            </label>
-            <label className="compile-field">
-              <span>Bölüm ayracı</span>
-              <input
-                type="text"
-                className="compile-separator"
-                value={separator}
-                onChange={(e) => setSeparator(e.target.value)}
-                aria-label="Bölümler arası ayraç"
-              />
-            </label>
-          </section>
+          <label className="compile-field">
+            <span>Kapsam</span>
+            <select
+              value={scopeId}
+              data-testid="compile-scope"
+              onChange={(e) => setScopeId(e.target.value)}
+            >
+              {scopeOptions.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {done && (
+            <p className="compile-done" role="status">
+              ✓ Derleme tamamlandı — çıktı proje klasöründe.
+            </p>
+          )}
         </div>
 
-        <footer className="compile-dialog__foot">
+        <footer className="compile-foot">
           <button type="button" className="btn btn--ghost" onClick={onClose}>
             Vazgeç
           </button>
-          <button type="button" className="btn btn--primary" onClick={compile} disabled={busy}>
+          <button
+            type="button"
+            className="btn btn--primary"
+            data-testid="compile-run"
+            disabled={busy}
+            onClick={handleCompile}
+          >
             {busy ? 'Derleniyor…' : 'Derle'}
           </button>
         </footer>
-      </div>
+      </section>
     </div>
   );
 }

@@ -1,0 +1,210 @@
+import React, { useEffect } from 'react';
+import './ThemeCustomizer.css';
+
+/**
+ * ThemeCustomizer — Faz 26: Tema & tipografi özelleştirme modalı.
+ *
+ * p26-s5 düzeltmesi: Bileşen artık saf TypeScript (.tsx) ve props'ları AÇIK
+ * arayüzlerle (ThemeCustomizerProps) tiplenmiştir. Eski .jsx + .d.ts ikilisi
+ * kaldırıldı; böylece App.tsx'ten aktarılan `fontChoices={FONT_CHOICES}` gibi
+ * dizi prop'larda `never[]` daralması / çakışması kesinlikle oluşmaz.
+ * Vite transform hatası da JSX dosyasındaki olası sözdizimi belirsizliğini
+ * ortadan kaldırdığımız için giderilir.
+ */
+
+export interface ThemeCardData {
+  name: string;
+  label: string;
+  desc: string;
+  swatch: string[];
+}
+
+export interface FontChoiceData {
+  id: string;
+  label: string;
+}
+
+export interface TypographyData {
+  fontFamily: string;
+  fontSize: number;
+  lineHeight: number;
+}
+
+export interface FontSizeRangeData {
+  min: number;
+  max: number;
+  step: number;
+}
+
+export interface ThemeCustomizerProps {
+  open: boolean;
+  onClose: () => void;
+  themeName: string;
+  themes?: ThemeCardData[];
+  onThemeChange: (name: string) => void;
+  typography?: TypographyData;
+  fontChoices?: FontChoiceData[];
+  lineHeightOptions?: number[];
+  fontSizeRange?: FontSizeRangeData;
+  onTypographyChange: (patch: Partial<TypographyData>) => void;
+}
+
+const DEFAULT_TYPOGRAPHY: TypographyData = {
+  fontFamily: 'serif',
+  fontSize: 18,
+  lineHeight: 1.9,
+};
+
+const DEFAULT_RANGE: FontSizeRangeData = { min: 14, max: 24, step: 1 };
+
+export default function ThemeCustomizer({
+  open,
+  onClose,
+  themeName,
+  themes = [],
+  onThemeChange,
+  typography = DEFAULT_TYPOGRAPHY,
+  fontChoices = [],
+  lineHeightOptions = [1.5, 1.7, 1.9, 2.1],
+  fontSizeRange = DEFAULT_RANGE,
+  onTypographyChange,
+}: ThemeCustomizerProps): React.ReactElement | null {
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="theme-overlay"
+      onMouseDown={(e: React.MouseEvent<HTMLDivElement>) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="theme-panel" role="dialog" aria-modal="true" aria-label="Tema ve tipografi">
+        <header className="theme-panel__head">
+          <h2>Görünüm</h2>
+          <button
+            type="button"
+            className="theme-panel__close"
+            onClick={onClose}
+            aria-label="Kapat"
+          >
+            ×
+          </button>
+        </header>
+
+        <div className="theme-panel__body">
+          {/* --- Palet kartları --- */}
+          <section className="theme-section">
+            <h3 className="theme-section__title">Palet</h3>
+            <div className="theme-cards">
+              {themes.map((t: ThemeCardData) => (
+                <label
+                  key={t.name}
+                  className={`theme-card${themeName === t.name ? ' is-active' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="theme"
+                    value={t.name}
+                    checked={themeName === t.name}
+                    onChange={() => onThemeChange(t.name)}
+                  />
+                  <span className="theme-card__swatch" aria-hidden="true">
+                    {(t.swatch || []).map((c: string, i: number) => (
+                      <i key={i} style={{ background: c }} />
+                    ))}
+                  </span>
+                  <span className="theme-card__label">{t.label}</span>
+                  <span className="theme-card__desc">{t.desc}</span>
+                </label>
+              ))}
+            </div>
+          </section>
+
+          {/* --- Yazı ailesi --- */}
+          <section className="theme-section">
+            <h3 className="theme-section__title">Yazı ailesi</h3>
+            <div className="seg-control" role="radiogroup" aria-label="Yazı ailesi">
+              {fontChoices.map((f: FontChoiceData) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={typography.fontFamily === f.id}
+                  className={`seg-btn${typography.fontFamily === f.id ? ' is-active' : ''}`}
+                  onClick={() => onTypographyChange({ fontFamily: f.id })}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* --- Punto --- */}
+          <section className="theme-section">
+            <h3 className="theme-section__title">
+              Punto{' '}
+              <span className="theme-section__value">{typography.fontSize}px</span>
+            </h3>
+            <input
+              type="range"
+              className="theme-range"
+              min={fontSizeRange.min}
+              max={fontSizeRange.max}
+              step={fontSizeRange.step}
+              value={typography.fontSize}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onTypographyChange({ fontSize: Number(e.target.value) })
+              }
+              aria-label="Punto boyutu"
+            />
+          </section>
+
+          {/* --- Satır aralığı --- */}
+          <section className="theme-section">
+            <h3 className="theme-section__title">Satır aralığı</h3>
+            <div className="seg-control" role="radiogroup" aria-label="Satır aralığı">
+              {lineHeightOptions.map((lh: number) => (
+                <button
+                  key={lh}
+                  type="button"
+                  role="radio"
+                  aria-checked={typography.lineHeight === lh}
+                  className={`seg-btn${typography.lineHeight === lh ? ' is-active' : ''}`}
+                  onClick={() => onTypographyChange({ lineHeight: lh })}
+                >
+                  {Number(lh).toFixed(1)}×
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* --- Canlı önizleme --- */}
+          <section className="theme-section">
+            <h3 className="theme-section__title">Önizleme</h3>
+            <div className="type-preview">
+              <p>
+                Hızlı kahverengi tilki tembel köpeğin üzerinden atlar — tüm Türkçe
+                karakterler: ç ğ ı ö ş ü Ç Ğ İ Ö Ş Ü 1234567890.
+              </p>
+            </div>
+          </section>
+        </div>
+
+        <footer className="theme-panel__foot">
+          <button type="button" className="btn btn--primary" onClick={onClose}>
+            Tamam
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
+}
