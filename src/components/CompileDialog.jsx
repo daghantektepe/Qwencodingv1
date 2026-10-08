@@ -52,7 +52,28 @@ export default function CompileDialog({ open, onClose, tree, onCompile }) {
   const handleCompile = async () => {
     setBusy(true);
     try {
-      if (onCompile) await onCompile({ format, scopeId });
+      if (onCompile) {
+        await onCompile({ format, scopeId });
+      } else {
+        const api = typeof window !== 'undefined' ? (window.electronAPI || window.api) : null;
+        if (api?.compileRun) {
+          const mappedFormat = format === 'md' ? 'markdown' : format === 'txt' ? 'plain' : format;
+          const docIds = scopeId && scopeId !== 'all' ? [scopeId] : undefined;
+          const res = await api.compileRun({
+            projectId: 'default',
+            tree,
+            docIds,
+            format: mappedFormat,
+            projectName: 'OpenScriv Projesi',
+          });
+          if (res?.ok && res.compiled && api.saveCompiledFile) {
+            await api.saveCompiledFile({
+              content: res.compiled.content,
+              fileName: res.compiled.fileName,
+            });
+          }
+        }
+      }
       setDone(true);
     } finally {
       setBusy(false);
