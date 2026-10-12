@@ -181,38 +181,16 @@ export class CrdtEngine {
 
   /**
    * Belirli bir saatten sonraki operasyonları alır
-   * Vektör saati karşılaştırması: op.clock > referans clock olmalı
    */
   getOperationsSince(clock: VectorClock): CrdtOperation[] {
     return this.operations.filter(op => {
       const comparison = this.compareClocks(op.clock, clock);
       
-      // comparison === 1: op.clock > clock (kesinlikle sonra, dahil et)
-      if (comparison === 1) return true;
-      
-      // comparison === 0: op.clock === clock (eşit, dahil etme)
-      if (comparison === 0) return false;
-      
-      // comparison === -1: op.clock < clock (önce, dahil etme)
-      if (comparison === -1) return false;
-      
-      // comparison === 2: çakışma (concurrent)
-      // Çakışma durumunda timestamp karşılaştırması yap
-      // Operasyonun timestamp'ı referans clock'un oluşturulduğu andan sonra mı?
-      // Referans clock'un timestamp'ını bulmak için operasyonları kontrol et
-      const refOp = this.operations.find(refOp => {
-        const refComparison = this.compareClocks(refOp.clock, clock);
-        return refComparison === 0; // Eşit olan operasyonu bul
-      });
-      
-      if (refOp) {
-        // Referans operasyonun timestamp'ından sonra mı?
-        return op.timestamp > refOp.timestamp;
-      }
-      
-      // Referans bulunamazsa, timestamp'a göre sırala
-      // Bu durumda operasyonu dahil etme (güvenli taraf)
-      return false;
+      // Sadece verilen saatten SONRA gelen operasyonları dahil et
+      // comparison > 0: op.clock > clock (sonra)
+      // comparison === 0: eşit (dahil etme)
+      // comparison < 0: önce (dahil etme)
+      return comparison > 0;
     });
   }
 
