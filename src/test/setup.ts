@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { afterEach, vi, afterAll } from 'vitest';
+import { afterEach, vi } from 'vitest';
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -90,17 +90,6 @@ HTMLCanvasElement.prototype.getContext = function() {
   return null;
 } as any;
 
-// Mock useLayoutEffect for jsdom environment
-// React 18/19 throws error when useLayoutEffect is used in non-browser environment
-const originalUseLayoutEffect = (await import('react')).useLayoutEffect;
-vi.mock('react', async () => {
-  const actual = await vi.importActual('react');
-  return {
-    ...actual,
-    useLayoutEffect: (actual as any).useEffect,
-  };
-});
-
 // Suppress React 18/19 act() warnings in tests
 const originalError = console.error;
 console.error = (...args: any[]) => {
@@ -108,8 +97,7 @@ console.error = (...args: any[]) => {
   if (
     message.includes('act(') ||
     message.includes('Warning: An update to') ||
-    message.includes('inside a test was not wrapped in act') ||
-    message.includes('useLayoutEffect')
+    message.includes('inside a test was not wrapped in act')
   ) {
     return;
   }
@@ -128,12 +116,38 @@ if (typeof queueMicrotask === 'undefined') {
   };
 }
 
-// Cleanup timers after each test
-afterEach(() => {
-  vi.clearAllTimers();
+// Mock jsPDF for tests
+vi.mock('jspdf', () => {
+  return {
+    jsPDF: vi.fn().mockImplementation(() => ({
+      internal: {
+        pageSize: {
+          getWidth: () => 210,
+          getHeight: () => 297,
+        },
+      },
+      setFontSize: vi.fn(),
+      setFont: vi.fn(),
+      text: vi.fn(),
+      addPage: vi.fn(),
+      splitTextToSize: vi.fn((text: string) => [text]),
+      getNumberOfPages: vi.fn(() => 1),
+      setPage: vi.fn(),
+      output: vi.fn(() => new Blob(['test pdf'], { type: 'application/pdf' })),
+    })),
+  };
 });
 
-// Cleanup after all tests
-afterAll(() => {
-  vi.restoreAllMocks();
+// Mock JSZip for tests
+vi.mock('jszip', () => {
+  return {
+    default: vi.fn().mockImplementation(() => ({
+      file: vi.fn(),
+      folder: vi.fn(() => ({
+        file: vi.fn(),
+        folder: vi.fn(),
+      })),
+      generateAsync: vi.fn(() => Promise.resolve(new Blob(['test epub'], { type: 'application/epub+zip' }))),
+    })),
+  };
 });

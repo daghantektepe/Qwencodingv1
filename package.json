@@ -1,49 +1,48 @@
 {
-    "name":  "openscriv",
-    "version":  "0.1.0",
-    "description":  "A local-first desktop writing studio inspired by Scrivener.",
-    "private":  true,
-    "main":  "electron/main.cjs",
-    "type":  "module",
-    "scripts":  {
-                    "dev":  "vite --host 127.0.0.1",
-                    "build":  "tsc --noEmit \u0026\u0026 vite build",
-                    "preview":  "vite preview --host 127.0.0.1",
-                    "test": "vitest run",
-                    "test:watch": "vitest",
-                    "test:electron": "node scripts/run-electron-runtime-test.cjs",
-                    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://127.0.0.1:5173 && cross-env NODE_ENV=development electron .\"",
-                    "electron:start": "electron ."
-                },
-    "keywords":  [
-                     "writing",
-                     "scrivener",
-                     "electron",
-                     "react",
-                     "local-first"
-                 ],
-    "author":  "OpenScriv contributors",
-    "license":  "MIT",
-    "dependencies":  {
-                         "@vitejs/plugin-react":  "latest",
-                         "vite":  "latest",
-                         "typescript":  "latest",
-                         "react":  "latest",
-                         "react-dom":  "latest",
-                         "lucide-react":  "latest"
-                     },
-    "devDependencies":  {
-                            "@testing-library/jest-dom":  "latest",
-                            "@testing-library/react":  "latest",
-                            "@types/node":  "latest",
-                            "@types/react":  "latest",
-                            "@types/react-dom":  "latest",
-                            "concurrently":  "latest",
-                            "cross-env":  "latest",
-                            "electron":  "latest",
-                            "jsdom":  "latest",
-                            "vitest":  "latest",
-                            "wait-on":  "latest",
-                            "@testing-library/user-event":  "latest"
-                        }
+  "name": "sandbox-workspace",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:electron": "python tests/smoke.py || py tests/smoke.py"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.1.0",
+    "@dnd-kit/sortable": "^8.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@supabase/supabase-js": "^2.98.0",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "canvas-confetti": "^1.9.3",
+    "date-fns": "^2.30.0",
+    "framer-motion": "^11.16.1",
+    "jsdom": "^30.1.2",
+    "jspdf": "^4.2.1",
+    "jszip": "^3.10.2",
+    "lucide-react": "^0.294.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.8.0",
+    "recharts": "^2.10.0",
+    "uuid": "^9.0.1",
+    "vitest": "^5.0.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.7",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/user-event": "^14.6.7",
+    "@types/canvas-confetti": "^1.6.4",
+    "@types/jspdf": "^1.3.3",
+    "@types/jszip": "^3.4.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/uuid": "^9.0.7",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.1.7",
+    "typescript": "^5.7.0",
+    "vite": "^6.3.5"
+  }
 }
