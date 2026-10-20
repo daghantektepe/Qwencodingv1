@@ -1,2 +1,0 @@
-
-src/hooks/useSync.ts
