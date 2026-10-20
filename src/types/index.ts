@@ -44,3 +44,32 @@ export {
   CATEGORY_COLORS,
   PLOTLINE_COLORS,
 } from './timeline';
+
+// Analytics types
+export type {
+  WritingSession,
+  DailyActivity,
+  WordFrequency,
+  ReadabilityMetrics,
+  WpmDataPoint,
+  AnalyticsState,
+  AnalyticsAction,
+  HeatmapCell,
+} from './analytics';
+
+// Research types
+export type {
+  MediaType,
+  MediaCategory,
+  ResearchMedia,
+  ResearchFolder,
+  ResearchState,
+  ResearchAction,
+} from './research';
+
+export {
+  MEDIA_TYPE_LABELS,
+  MEDIA_CATEGORY_LABELS,
+  MEDIA_TYPE_ICONS,
+  FOLDER_COLORS,
+} from './research';
