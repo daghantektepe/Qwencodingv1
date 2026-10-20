@@ -1,0 +1,242 @@
+{
+  "güzel": [
+    {
+      "word": "güzel",
+      "synonyms": ["hoş", "şık", "zarif", "alımlı", "cemal", "nazlı", "sevimli", "çekici"],
+      "antonyms": ["çirkin", "kötü"],
+      "category": "sıfat"
+    }
+  ],
+  "büyük": [
+    {
+      "word": "büyük",
+      "synonyms": ["iri", "kocaman", "dev", "muazzam", "geniş", "yüce", "azim"],
+      "antonyms": ["küçük", "minik"],
+      "category": "sıfat"
+    }
+  ],
+  "küçük": [
+    {
+      "word": "küçük",
+      "synonyms": ["minik", "ufak", "dar", "ince", "narin"],
+      "antonyms": ["büyük", "iri"],
+      "category": "sıfat"
+    }
+  ],
+  "hızlı": [
+    {
+      "word": "hızlı",
+      "synonyms": ["çabuk", "süratli", "acele", "peş peşe", "ivedi"],
+      "antonyms": ["yavaş", "ağır"],
+      "category": "sıfat"
+    }
+  ],
+  "yavaş": [
+    {
+      "word": "yavaş",
+      "synonyms": ["ağır", "tembel", "mülayim", "sakin"],
+      "antonyms": ["hızlı", "çabuk"],
+      "category": "sıfat"
+    }
+  ],
+  "mutlu": [
+    {
+      "word": "mutlu",
+      "synonyms": ["sevinçli", "neşeli", "keyifli", "bahtiyar", "mesut"],
+      "antonyms": ["mutsuz", "üzgün"],
+      "category": "duygu"
+    }
+  ],
+  "üzgün": [
+    {
+      "word": "üzgün",
+      "synonyms": ["kederli", "mutsuz", "tasalı", "mahzun", "gamlı"],
+      "antonyms": ["mutlu", "neşeli"],
+      "category": "duygu"
+    }
+  ],
+  "korku": [
+    {
+      "word": "korku",
+      "synonyms": ["dehşet", "korkutma", "ürkeklik", "endişe", "vehim"],
+      "antonyms": ["cesaret", "yiğitlik"],
+      "category": "duygu"
+    }
+  ],
+  "sevgi": [
+    {
+      "word": "sevgi",
+      "synonyms": ["aşk", "muhabbet", "şefkat", "merhamet", "ilgi"],
+      "antonyms": ["nefret", "buğz"],
+      "category": "duygu"
+    }
+  ],
+  "savaş": [
+    {
+      "word": "savaş",
+      "synonyms": ["muharebe", "çarpışma", "kavga", "savaşım", "cenk"],
+      "antonyms": ["barış", "sulh"],
+      "category": "olay"
+    }
+  ],
+  "barış": [
+    {
+      "word": "barış",
+      "synonyms": ["sulh", "huzur", "uzlaşı", "ahenk"],
+      "antonyms": ["savaş", "kavga"],
+      "category": "olay"
+    }
+  ],
+  "ev": [
+    {
+      "word": "ev",
+      "synonyms": ["konut", "mesken", "hane", "yurt", "dam"],
+      "antonyms": [],
+      "category": "yer"
+    }
+  ],
+  "yol": [
+    {
+      "word": "yol",
+      "synonyms": ["tarik", "patika", "sokak", "cadde", "meydan"],
+      "antonyms": [],
+      "category": "yer"
+    }
+  ],
+  "göz": [
+    {
+      "word": "göz",
+      "synonyms": ["basar", "görme", "bakış", "nazar"],
+      "antonyms": [],
+      "category": "vücut"
+    }
+  ],
+  "kalp": [
+    {
+      "word": "kalp",
+      "synonyms": ["yürek", "gönül", "kelp", "delik"],
+      "antonyms": [],
+      "category": "vücut"
+    }
+  ],
+  "beautiful": [
+    {
+      "word": "beautiful",
+      "synonyms": ["gorgeous", "pretty", "lovely", "attractive", "stunning", "handsome"],
+      "antonyms": ["ugly", "hideous"],
+      "category": "adjective"
+    }
+  ],
+  "big": [
+    {
+      "word": "big",
+      "synonyms": ["large", "huge", "enormous", "massive", "giant", "vast"],
+      "antonyms": ["small", "tiny"],
+      "category": "adjective"
+    }
+  ],
+  "small": [
+    {
+      "word": "small",
+      "synonyms": ["tiny", "little", "miniature", "compact", "minute"],
+      "antonyms": ["big", "large"],
+      "category": "adjective"
+    }
+  ],
+  "fast": [
+    {
+      "word": "fast",
+      "synonyms": ["quick", "rapid", "swift", "speedy", "hasty"],
+      "antonyms": ["slow", "sluggish"],
+      "category": "adjective"
+    }
+  ],
+  "slow": [
+    {
+      "word": "slow",
+      "synonyms": ["sluggish", "unhurried", "leisurely", "gradual"],
+      "antonyms": ["fast", "quick"],
+      "category": "adjective"
+    }
+  ],
+  "happy": [
+    {
+      "word": "happy",
+      "synonyms": ["joyful", "cheerful", "delighted", "pleased", "content"],
+      "antonyms": ["sad", "unhappy"],
+      "category": "emotion"
+    }
+  ],
+  "sad": [
+    {
+      "word": "sad",
+      "synonyms": ["unhappy", "sorrowful", "melancholy", "gloomy", "depressed"],
+      "antonyms": ["happy", "joyful"],
+      "category": "emotion"
+    }
+  ],
+  "fear": [
+    {
+      "word": "fear",
+      "synonyms": ["dread", "terror", "fright", "anxiety", "panic"],
+      "antonyms": ["courage", "bravery"],
+      "category": "emotion"
+    }
+  ],
+  "love": [
+    {
+      "word": "love",
+      "synonyms": ["affection", "adoration", "devotion", "passion", "fondness"],
+      "antonyms": ["hate", "hatred"],
+      "category": "emotion"
+    }
+  ],
+  "war": [
+    {
+      "word": "war",
+      "synonyms": ["conflict", "battle", "combat", "struggle", "fight"],
+      "antonyms": ["peace", "truce"],
+      "category": "event"
+    }
+  ],
+  "peace": [
+    {
+      "word": "peace",
+      "synonyms": ["harmony", "tranquility", "serenity", "calm", "quiet"],
+      "antonyms": ["war", "conflict"],
+      "category": "event"
+    }
+  ],
+  "house": [
+    {
+      "word": "house",
+      "synonyms": ["home", "dwelling", "residence", "abode", "domicile"],
+      "antonyms": [],
+      "category": "place"
+    }
+  ],
+  "road": [
+    {
+      "word": "road",
+      "synonyms": ["path", "way", "route", "street", "avenue"],
+      "antonyms": [],
+      "category": "place"
+    }
+  ],
+  "eye": [
+    {
+      "word": "eye",
+      "synonyms": ["vision", "sight", "gaze", "look", "stare"],
+      "antonyms": [],
+      "category": "body"
+    }
+  ],
+  "heart": [
+    {
+      "word": "heart",
+      "synonyms": ["core", "center", "soul", "spirit", "essence"],
+      "antonyms": [],
+      "category": "body"
+    }
+  ]
+}
