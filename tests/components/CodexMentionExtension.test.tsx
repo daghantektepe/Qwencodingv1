@@ -1,4 +1,5 @@
 import React from 'react';
+import { vi, describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CodexMentionExtension, { highlightText, MentionMarker, Mention } from '../../src/components/Codex/CodexMentionExtension';
@@ -19,7 +20,7 @@ describe('CodexMentionExtension', () => {
       render(<CodexMentionExtension text="Hi Alice and Bob" mentions={mockMentions} />);
       expect(screen.getByText('Alice')).toBeInTheDocument();
       expect(screen.getByText('Bob')).toBeInTheDocument();
-      expect(screen.querySelector('.codex-mention-highlight')).toBeInTheDocument();
+      expect(document.querySelector('.codex-mention-highlight')).toBeInTheDocument();
     });
 
     it('supports compact mode', () => {
@@ -31,7 +32,7 @@ describe('CodexMentionExtension', () => {
 
   describe('Interaction', () => {
     it('calls onMentionClick when a highlighted mention is clicked', async () => {
-      const handleMentionClick = jest.fn();
+      const handleMentionClick = vi.fn();
       render(
         <CodexMentionExtension 
           text="Talk to Alice" 
