@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import DocumentDiffViewer from './Diff/DocumentDiffViewer';
 import './Snapshots.css';
 
 /**
@@ -120,6 +121,7 @@ export default function Snapshots({ document = null, projectId = 'default', onRe
   const [noteInput, setNoteInput] = useState('');
   const [preview, setPreview] = useState(null); // snapshot objesi (içerikli)
   const [restoreTarget, setRestoreTarget] = useState(null); // onay bekleyen snapshot
+  const [diffSnapshot, setDiffSnapshot] = useState(null); // diff modalı için seçilen snapshot
 
   // Doküman değişince listeyi yenile
   const refreshList = useCallback(async () => {
@@ -138,6 +140,7 @@ export default function Snapshots({ document = null, projectId = 'default', onRe
 
   useEffect(() => {
     setPreview(null);
+    setDiffSnapshot(null);
     setRestoreTarget(null);
     setNoteInput('');
     refreshList();
@@ -182,6 +185,31 @@ export default function Snapshots({ document = null, projectId = 'default', onRe
         });
         if (res?.ok) setPreview(res.snapshot);
         else setMessage({ type: 'error', text: res?.error || 'Önizleme alınamadı.' });
+      } catch (err) {
+        setMessage({ type: 'error', text: err.message });
+      } finally {
+        setBusy(false);
+      }
+    },
+    [document, projectId]
+  );
+
+  // --- Görsel Diff Karşılaştırma ---
+  const handleOpenDiff = useCallback(
+    async (snap) => {
+      if (!document) return;
+      setBusy(true);
+      try {
+        const res = await callIpc('snapshot-load', {
+          projectId,
+          docId: document.id,
+          timestamp: snap.timestamp,
+        });
+        if (res?.ok && res.snapshot) {
+          setDiffSnapshot(res.snapshot);
+        } else {
+          setMessage({ type: 'error', text: res?.error || 'Snapshot içeriği alınamadı.' });
+        }
       } catch (err) {
         setMessage({ type: 'error', text: err.message });
       } finally {
@@ -318,6 +346,15 @@ export default function Snapshots({ document = null, projectId = 'default', onRe
                   </button>
                   <button
                     type="button"
+                    className="snapshots-btn snapshots-btn--small"
+                    onClick={() => handleOpenDiff(snap)}
+                    disabled={busy}
+                    title="Farkı Görsel Karşılaştır (Diff)"
+                  >
+                    🔍
+                  </button>
+                  <button
+                    type="button"
                     className="snapshots-btn snapshots-btn--small snapshots-btn--restore"
                     onClick={() => setRestoreTarget(snap)}
                     disabled={busy}
@@ -383,6 +420,43 @@ export default function Snapshots({ document = null, projectId = 'default', onRe
               <pre className="snapshots-preview__content">
                 {preview.content}
               </pre>
+            </div>
+          )}
+
+          {/* Görsel Metin Farkı (Diff Viewer) Modalı */}
+          {diffSnapshot && (
+            <div
+              className="snapshots-diff-overlay fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+              role="dialog"
+              aria-label="Versiyon Karşılaştırma ve Metin Farkı Modalı"
+            >
+              <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden border border-neutral-300 dark:border-neutral-700">
+                <DocumentDiffViewer
+                  oldText={diffSnapshot.content || ''}
+                  newText={document.content || ''}
+                  documentTitle={document.title}
+                  snapshots={snapshots}
+                  selectedSnapshotTimestamp={diffSnapshot.timestamp}
+                  onSelectSnapshot={(ts) => {
+                    const found = snapshots.find((s) => s.timestamp === ts);
+                    if (found) handleOpenDiff(found);
+                  }}
+                  onRollbackParagraph={(restoredFullText) => {
+                    if (typeof onRestore === 'function') {
+                      onRestore(document.id, restoredFullText, {
+                        timestamp: diffSnapshot.timestamp,
+                        title: `Seçmeli Geri Alma (${diffSnapshot.title})`,
+                      });
+                    }
+                    setMessage({ type: 'ok', text: 'Seçilen paragraf geri yüklendi ✓' });
+                  }}
+                  onFullRollback={() => {
+                    doRestore(diffSnapshot);
+                    setDiffSnapshot(null);
+                  }}
+                  onClose={() => setDiffSnapshot(null)}
+                />
+              </div>
             </div>
           )}
         </>
