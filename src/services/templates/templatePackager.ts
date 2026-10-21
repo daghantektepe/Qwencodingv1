@@ -5,6 +5,7 @@
 export type TemplateCategory = 'novel' | 'screenplay' | 'academic' | 'custom';
 
 export interface OscTemplateItem {
+  id?: string;
   title: string;
   type: 'folder' | 'document';
   content?: string;
@@ -27,8 +28,8 @@ export interface ProjectTemplate {
 
 const BUILT_IN_TEMPLATES: ProjectTemplate[] = [
   {
-    id: 'tpl-3-act-novel',
-    name: '3 Perdeli Klasik Roman Şablonu',
+    id: 'preset-novel-three-act',
+    name: 'Klasik Roman (3 Perdeli Yapı)',
     category: 'novel',
     description: 'Syd Field ve Campbell kahramanın yolculuğu mimarisinde 3 Perde, 9 Bölüm ve Karakter Dosyaları.',
     icon: '📖',
@@ -81,7 +82,39 @@ const BUILT_IN_TEMPLATES: ProjectTemplate[] = [
     ],
   },
   {
-    id: 'tpl-hollywood-screenplay',
+    id: 'preset-academic-thesis',
+    name: 'Akademik Tez ve Araştırma Makalesi',
+    category: 'academic',
+    description: 'APA/MLA standartlarında tez, literatür taraması, metodoloji, bulgular ve kaynakça iskeleti.',
+    icon: '🎓',
+    author: 'OpenScriv Academic',
+    version: '1.0.0',
+    isBuiltIn: true,
+    sampleTargetWords: 35000,
+    structure: [
+      {
+        title: 'Tez Metni',
+        type: 'folder',
+        children: [
+          { title: '1. Giriş ve Problem Tanımı', type: 'document' },
+          { title: '2. Literatür Taraması', type: 'document' },
+          { title: '3. Metodoloji ve Yöntem', type: 'document' },
+          { title: '4. Bulgular ve Analiz', type: 'document' },
+          { title: '5. Tartışma ve Sonuç', type: 'document' },
+        ],
+      },
+      {
+        title: 'Ekler & Kaynakça',
+        type: 'folder',
+        children: [
+          { title: 'Kaynakça Tablosu', type: 'document' },
+          { title: 'Anket ve Veri Setleri', type: 'document' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'preset-screenplay-hollywood',
     name: 'Hollywood Standart Senaryo',
     category: 'screenplay',
     description: '110 sayfalık sinema filmi formatı. Beat Sheet, Sahne Dökümü ve Fountain uyumlu iskelet.',
@@ -182,15 +215,17 @@ export class TemplatePackager {
    */
   public instantiateTemplate(
     templateId: string
-  ): Array<{ title: string; type: string; content: string; parentTitle: string | null }> {
+  ): Array<{ id: string; title: string; type: string; content: string; parentTitle: string | null }> {
     const template = this.getAllTemplates().find((t) => t.id === templateId);
     if (!template) throw new Error('Şablon bulunamadı');
 
-    const result: Array<{ title: string; type: string; content: string; parentTitle: string | null }> = [];
+    const result: Array<{ id: string; title: string; type: string; content: string; parentTitle: string | null }> = [];
+    let counter = 1;
 
     const traverse = (items: OscTemplateItem[], parentTitle: string | null) => {
       for (const item of items) {
         result.push({
+          id: `node-${Date.now()}-${counter++}`,
           title: item.title,
           type: item.type,
           content: item.content || (item.synopsis ? `<!-- Özet: ${item.synopsis} -->\n\n` : ''),

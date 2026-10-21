@@ -7,7 +7,7 @@ import {
 
 interface TemplateGalleryModalProps {
   isOpen: boolean;
-  onSelectTemplate: (template: ProjectTemplate) => void;
+  onSelectTemplate: (template: ProjectTemplate, nodes: any[]) => void;
   onClose: () => void;
 }
 
@@ -65,8 +65,17 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
     }
   };
 
+  const handleConfirm = () => {
+    if (selectedTemplate) {
+      const nodes = templatePackager.instantiateTemplate(selectedTemplate.id);
+      onSelectTemplate(selectedTemplate, nodes);
+      onClose();
+    }
+  };
+
   return (
     <div
+      data-testid="template-gallery-modal"
       className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
@@ -78,7 +87,7 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-xl">🏛️</span>
             <h2 id="template-gallery-title" className="font-semibold text-white text-sm">
-              Proje Şablonları Galerisi (Templates Studio)
+              Proje Şablon Galerisi & Sihirbazı (Templates Studio)
             </h2>
           </div>
 
@@ -102,24 +111,26 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
 
         {/* Kategori Filtresi */}
         <div className="flex items-center gap-2 px-5 py-2.5 bg-slate-950/60 border-b border-slate-800 shrink-0 text-xs">
-          {(['all', 'novel', 'screenplay', 'custom'] as const).map((cat) => (
+          {(
+            [
+              { id: 'all', label: 'Tüm Şablonlar' },
+              { id: 'novel', label: 'Roman' },
+              { id: 'academic', label: 'Akademik' },
+              { id: 'screenplay', label: 'Senaryo' },
+              { id: 'custom', label: 'Özel' },
+            ] as const
+          ).map((cat) => (
             <button
-              key={cat}
+              key={cat.id}
               type="button"
-              onClick={() => setSelectedCategory(cat)}
+              onClick={() => setSelectedCategory(cat.id)}
               className={`px-3 py-1 rounded-full font-medium transition-colors ${
-                selectedCategory === cat
+                selectedCategory === cat.id
                   ? 'bg-cyan-700 text-white shadow'
                   : 'bg-slate-800 text-slate-400 hover:text-white'
               }`}
             >
-              {cat === 'all'
-                ? 'Tüm Şablonlar'
-                : cat === 'novel'
-                ? 'Roman & Kurgu'
-                : cat === 'screenplay'
-                ? 'Senaryo & Sahne'
-                : 'Özel Şablonlar'}
+              {cat.label}
             </button>
           ))}
         </div>
@@ -133,6 +144,7 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
               return (
                 <div
                   key={tpl.id}
+                  data-testid={`template-card-${tpl.id}`}
                   onClick={() => setSelectedTemplate(tpl)}
                   className={`p-3.5 rounded-lg border cursor-pointer transition-colors flex items-start gap-3 ${
                     isSelected
@@ -213,12 +225,8 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
             <div className="pt-4 border-t border-slate-800 flex justify-end">
               <button
                 type="button"
-                onClick={() => {
-                  if (selectedTemplate) {
-                    onSelectTemplate(selectedTemplate);
-                    onClose();
-                  }
-                }}
+                data-testid="start-template-button"
+                onClick={handleConfirm}
                 className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-lg shadow-lg shadow-cyan-900/30 transition-all"
               >
                 Bu Şablonla Projeyi Başlat ➔
