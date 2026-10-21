@@ -1,256 +1,229 @@
-import React, { useState, useMemo } from 'react';
-import { ProjectTemplate, TemplateCategory, TemplateFolderNode } from '../../types/templates';
-import { templateManager } from '../../services/templateManager';
+import React, { useState } from 'react';
+import {
+  templatePackager,
+  ProjectTemplate,
+  TemplateCategory
+} from '../../services/templates/templatePackager';
 
-export interface TemplateGalleryModalProps {
+interface TemplateGalleryModalProps {
   isOpen: boolean;
+  onSelectTemplate: (template: ProjectTemplate) => void;
   onClose: () => void;
-  onSelectTemplate: (template: ProjectTemplate, initialNodes: TemplateFolderNode[]) => void;
 }
 
 export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
   isOpen,
-  onClose,
   onSelectTemplate,
+  onClose
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<TemplateCategory | 'all'>('all');
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('preset-novel-three-act');
-  const [importError, setImportError] = useState<string | null>(null);
-
-  const templates = useMemo(() => templateManager.getAllTemplates(), [isOpen]);
-
-  const filteredTemplates = useMemo(() => {
-    if (selectedCategory === 'all') return templates;
-    return templates.filter((t) => t.category === selectedCategory);
-  }, [templates, selectedCategory]);
-
-  const selectedTemplate = useMemo(() => {
-    return templates.find((t) => t.id === selectedTemplateId) || templates[0];
-  }, [templates, selectedTemplateId]);
+  const [templates, setTemplates] = useState<ProjectTemplate[]>(() =>
+    templatePackager.getAllTemplates()
+  );
+  const [selectedTemplate, setSelectedTemplate] = useState<ProjectTemplate>(
+    templates[0] || null
+  );
 
   if (!isOpen) return null;
 
-  const handleStartWithTemplate = () => {
-    if (!selectedTemplate) return;
-    const initialNodes = templateManager.instantiateTemplate(selectedTemplate.id);
-    onSelectTemplate(selectedTemplate, initialNodes);
-    onClose();
-  };
+  const filtered = templates.filter((t) =>
+    selectedCategory === 'all' ? true : t.category === selectedCategory
+  );
 
-  const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setImportError(null);
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
+  const handleImport = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.osctemplate,.json';
+    input.onchange = async (e: any) => {
+      const file = e.target?.files?.[0];
+      if (!file) return;
+      const text = await file.text();
       try {
-        const text = event.target?.result as string;
-        const imported = templateManager.importTemplateFromJson(text);
-        if (imported) {
-          setSelectedTemplateId(imported.id);
-        } else {
-          setImportError('Şablon dosyası geçersiz veya bozuk formatta.');
-        }
-      } catch {
-        setImportError('Dosya okunurken bir hata oluştu.');
+        const imported = templatePackager.importTemplateFile(text);
+        const updated = templatePackager.getAllTemplates();
+        setTemplates(updated);
+        setSelectedTemplate(imported);
+      } catch (err: any) {
+        alert(err.message);
       }
     };
-    reader.readAsText(file);
+    input.click();
   };
 
-  const renderTreePreview = (nodes: TemplateFolderNode[]) => {
-    return (
-      <ul className="space-y-1 pl-2 text-xs">
-        {nodes.map((node) => (
-          <li key={node.id} className="py-0.5">
-            <span className="font-medium flex items-center gap-1.5 text-neutral-800 dark:text-neutral-200">
-              <span>{node.type === 'folder' ? '📁' : '📄'}</span>
-              <span>{node.title}</span>
-            </span>
-            {node.synopsis && (
-              <p className="text-[11px] text-neutral-500 pl-5 line-clamp-1 italic">
-                {node.synopsis}
-              </p>
-            )}
-            {node.children && node.children.length > 0 && (
-              <div className="pl-3 border-l border-neutral-300 dark:border-neutral-700 mt-1">
-                {renderTreePreview(node.children)}
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
-    );
+  const handleExport = (templateId: string) => {
+    try {
+      const json = templatePackager.exportTemplateFile(templateId);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${selectedTemplate.name.toLowerCase().replace(/\s+/g, '-')}.osctemplate`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      alert(e.message);
+    }
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       role="dialog"
-      aria-label="Proje Şablon Galerisi ve Yazım Sihirbazı"
-      data-testid="template-gallery-modal"
+      aria-modal="true"
+      aria-labelledby="template-gallery-title"
     >
-      <div className="bg-white dark:bg-neutral-850 rounded-xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col overflow-hidden border border-neutral-300 dark:border-neutral-750 text-neutral-900 dark:text-neutral-100">
-        {/* Modal Başlığı */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-750 bg-neutral-50 dark:bg-neutral-800">
-          <div>
-            <h2 className="text-lg font-bold flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
-              <span>✨</span>
-              <span>Proje Şablon Galerisi & Sihirbazı</span>
+      <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-4xl h-[75vh] flex flex-col text-slate-200 overflow-hidden">
+        {/* Üst Çubuk */}
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-800 bg-slate-900/90 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🏛️</span>
+            <h2 id="template-gallery-title" className="font-semibold text-white text-sm">
+              Proje Şablonları Galerisi (Templates Studio)
             </h2>
-            <p className="text-xs text-neutral-500 mt-0.5">
-              Yazım türünüze en uygun hiyerarşik yapıyı seçin veya kendi özel şablonunuzu yükleyin.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 p-1 text-sm cursor-pointer"
-            aria-label="Kapat"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Kategori Filtre Çubuğu */}
-        <div className="flex items-center justify-between px-6 py-2.5 border-b border-neutral-200 dark:border-neutral-750 bg-white dark:bg-neutral-850 text-xs">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-            {[
-              { id: 'all', label: 'Tümü' },
-              { id: 'fiction', label: 'Roman & Kurgu' },
-              { id: 'academic', label: 'Akademik' },
-              { id: 'scriptwriting', label: 'Senaryo' },
-              { id: 'custom', label: 'Özel Şablonlar' },
-            ].map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setSelectedCategory(cat.id as any)}
-                className={`px-3 py-1 rounded-full font-medium transition-colors cursor-pointer ${
-                  selectedCategory === cat.id
-                    ? 'bg-amber-600 text-white shadow-xs'
-                    : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
           </div>
 
-          <label className="flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400 hover:underline cursor-pointer">
-            <span>📥</span>
-            <span>Şablon İçe Aktar</span>
-            <input
-              type="file"
-              accept=".json,.osctmpl"
-              onChange={handleImportJson}
-              className="hidden"
-              data-testid="import-template-input"
-            />
-          </label>
-        </div>
-
-        {importError && (
-          <div className="mx-6 mt-3 p-2 bg-rose-100 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 rounded text-xs">
-            {importError}
-          </div>
-        )}
-
-        {/* Ana İçerik: Sol Şablon Kartları, Sağ Önizleme */}
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-neutral-200 dark:divide-neutral-750 overflow-hidden">
-          {/* Sol: Şablon Kartları */}
-          <div className="overflow-y-auto p-4 space-y-3">
-            {filteredTemplates.length === 0 ? (
-              <div className="text-center py-12 text-neutral-400 text-xs">
-                Bu kategoride şablon bulunamadı.
-              </div>
-            ) : (
-              filteredTemplates.map((t) => (
-                <div
-                  key={t.id}
-                  onClick={() => setSelectedTemplateId(t.id)}
-                  className={`p-3.5 rounded-lg border text-left transition-all cursor-pointer ${
-                    selectedTemplateId === t.id
-                      ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/30 ring-1 ring-amber-500 shadow-xs'
-                      : 'border-neutral-200 dark:border-neutral-750 hover:border-neutral-300 dark:hover:border-neutral-600 bg-white dark:bg-neutral-800'
-                  }`}
-                  data-testid={`template-card-${t.id}`}
-                >
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl shrink-0">{t.icon}</span>
-                      <span className="font-bold text-sm text-neutral-900 dark:text-neutral-100">
-                        {t.name}
-                      </span>
-                    </div>
-                    {t.targets?.totalWords && (
-                      <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300">
-                        ~{t.targets.totalWords.toLocaleString('tr-TR')} kelime
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed line-clamp-2">
-                    {t.description}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Sağ: Seçili Şablonun Ağaç Yapısı Önizlemesi */}
-          <div className="overflow-y-auto p-5 bg-neutral-50/50 dark:bg-neutral-900 flex flex-col">
-            {selectedTemplate ? (
-              <>
-                <div className="mb-4">
-                  <div className="flex items-center gap-2 text-base font-bold">
-                    <span>{selectedTemplate.icon}</span>
-                    <span>{selectedTemplate.name}</span>
-                  </div>
-                  <p className="text-xs text-neutral-500 mt-1">
-                    {selectedTemplate.description}
-                  </p>
-                </div>
-
-                <div className="flex-1 bg-white dark:bg-neutral-800 p-3.5 rounded-lg border border-neutral-200 dark:border-neutral-750 overflow-y-auto shadow-xs">
-                  <h4 className="text-xs font-semibold uppercase text-neutral-400 mb-2.5">
-                    Varsayılan Klasör ve Doküman Ağacı
-                  </h4>
-                  {renderTreePreview(selectedTemplate.rootNodes)}
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-xs text-neutral-400">
-                Lütfen önizlemek için bir şablon seçin.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Alt Eylemler */}
-        <div className="flex items-center justify-between px-6 py-3 border-t border-neutral-200 dark:border-neutral-750 bg-neutral-50 dark:bg-neutral-800">
-          <div className="text-xs text-neutral-500">
-            {selectedTemplate && (
-              <span>Seçili: <strong>{selectedTemplate.name}</strong></span>
-            )}
-          </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleImport}
+              className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs text-cyan-300 font-medium border border-slate-700 transition-colors"
+            >
+              📥 .osctemplate İçe Aktar
+            </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs rounded border border-neutral-300 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 cursor-pointer"
+              className="text-slate-400 hover:text-white p-1 text-sm ml-2"
             >
-              Vazgeç
+              ✕
             </button>
+          </div>
+        </div>
+
+        {/* Kategori Filtresi */}
+        <div className="flex items-center gap-2 px-5 py-2.5 bg-slate-950/60 border-b border-slate-800 shrink-0 text-xs">
+          {(['all', 'novel', 'screenplay', 'custom'] as const).map((cat) => (
             <button
+              key={cat}
               type="button"
-              onClick={handleStartWithTemplate}
-              disabled={!selectedTemplate}
-              className="px-5 py-2 text-xs font-semibold rounded bg-amber-600 hover:bg-amber-700 text-white shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-              data-testid="start-template-button"
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-3 py-1 rounded-full font-medium transition-colors ${
+                selectedCategory === cat
+                  ? 'bg-cyan-700 text-white shadow'
+                  : 'bg-slate-800 text-slate-400 hover:text-white'
+              }`}
             >
-              🚀 Bu Şablonla Projeyi Başlat
+              {cat === 'all'
+                ? 'Tüm Şablonlar'
+                : cat === 'novel'
+                ? 'Roman & Kurgu'
+                : cat === 'screenplay'
+                ? 'Senaryo & Sahne'
+                : 'Özel Şablonlar'}
             </button>
+          ))}
+        </div>
+
+        {/* Gövde: Sol Kartlar, Sağ Detay & İskelet Önizleme */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Sol: Şablon Kartları */}
+          <div className="w-1/2 border-r border-slate-800 overflow-y-auto p-4 flex flex-col gap-2.5">
+            {filtered.map((tpl) => {
+              const isSelected = selectedTemplate?.id === tpl.id;
+              return (
+                <div
+                  key={tpl.id}
+                  onClick={() => setSelectedTemplate(tpl)}
+                  className={`p-3.5 rounded-lg border cursor-pointer transition-colors flex items-start gap-3 ${
+                    isSelected
+                      ? 'bg-slate-800 border-cyan-500 shadow-md'
+                      : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  <span className="text-2xl select-none">{tpl.icon}</span>
+                  <div className="flex-1 truncate">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-white text-xs truncate">
+                        {tpl.name}
+                      </span>
+                      {tpl.isBuiltIn && (
+                        <span className="text-[10px] bg-slate-950 text-slate-400 px-1.5 py-0.2 rounded border border-slate-800">
+                          Resmi
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">
+                      {tpl.description}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Sağ: Şablon Önizleme */}
+          <div className="w-1/2 p-5 overflow-y-auto flex flex-col justify-between bg-slate-950/40">
+            {selectedTemplate && (
+              <div className="flex flex-col gap-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="font-semibold text-white text-sm flex items-center gap-1.5">
+                      <span>{selectedTemplate.icon}</span> {selectedTemplate.name}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => handleExport(selectedTemplate.id)}
+                      className="text-xs text-cyan-400 hover:underline"
+                    >
+                      Dışa Aktar (.osctemplate)
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    {selectedTemplate.description}
+                  </p>
+                  <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono mt-2">
+                    <span>Yazar: {selectedTemplate.author}</span>
+                    <span>Hedef: {selectedTemplate.sampleTargetWords?.toLocaleString()} kelime</span>
+                  </div>
+                </div>
+
+                {/* Hiyerarşik Yapı Ağacı */}
+                <div className="bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs flex flex-col gap-1.5 max-h-56 overflow-y-auto">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                    Dosya & Klasör Hiyerarşisi
+                  </span>
+                  {selectedTemplate.structure.map((item, idx) => (
+                    <div key={idx} className="flex flex-col gap-1 pl-1">
+                      <div className="font-medium text-slate-200 flex items-center gap-1.5">
+                        <span>{item.type === 'folder' ? '📁' : '📄'}</span>
+                        <span>{item.title}</span>
+                      </div>
+                      {item.children?.map((child, cIdx) => (
+                        <div key={cIdx} className="pl-5 text-slate-400 flex items-center gap-1.5 text-[11px]">
+                          <span>{child.type === 'folder' ? '📁' : '📄'}</span>
+                          <span>{child.title}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="pt-4 border-t border-slate-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedTemplate) {
+                    onSelectTemplate(selectedTemplate);
+                    onClose();
+                  }
+                }}
+                className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-lg shadow-lg shadow-cyan-900/30 transition-all"
+              >
+                Bu Şablonla Projeyi Başlat ➔
+              </button>
+            </div>
           </div>
         </div>
       </div>
