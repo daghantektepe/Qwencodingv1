@@ -290,6 +290,14 @@ app.whenReady().then(() => {
     console.error('[main] projectIpc.cjs yuklenemedi:', err);
   }
 
+  // 8) Çoklu Pencere (Detached Multi-Window) Modülü (Faz 105)
+  try {
+    const { registerMultiWindowHandlers } = require('./multiWindowManager.cjs');
+    if (typeof registerMultiWindowHandlers === 'function') registerMultiWindowHandlers();
+  } catch (err) {
+    console.error('[main] multiWindowManager.cjs yuklenemedi:', err);
+  }
+
   // 7) Çerçevesiz Özel Başlık Çubuğu ve Pencere Kontrolleri (Faz 103)
   ipcMain.handle('window:minimize', () => {
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.minimize();
