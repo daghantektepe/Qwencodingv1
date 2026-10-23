@@ -1,7 +1,7 @@
 {
   "name": "openscriv",
-  "version": "1.0.0-rc1",
-  "description": "OpenScriv — The Ultimate Autonomous Local-First Writing Studio",
+  "version": "2.0.0",
+  "description": "OpenScriv v2.0 Masterpiece — The Ultimate Autonomous Local-First Writing Studio",
   "private": true,
   "type": "module",
   "scripts": {

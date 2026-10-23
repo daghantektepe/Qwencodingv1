@@ -1,62 +1,47 @@
-# OpenScriv - electron-builder yapilandirmasi (Faz 15)
-# Varsayilan hedef: Windows NSIS kurulum paketi; macOS ve Linux icin de
-# ayni dosya ile paket uretilebilir (capraz platform).
-
-appId: com.openscriv.desktop
+appId: com.openscriv.app
 productName: OpenScriv
 copyright: Copyright © 2026 OpenScriv Contributors
 
-# Uygulama metadata
 directories:
-  output: dist/electron-builder
-  buildResources: build
+  output: release/
+  buildResources: build/
 
-# Pakete dahil edilecek dosyalar (Vite build ciktilari + Electron kabugu)
 files:
   - dist/**/*
-  - electron/**/*
+  - src/electron/**/*
   - package.json
-  - "!node_modules/**/*"
 
-# Asar ile paketlemeden once harici derlenmesi gereken dogal bagimlilik yok.
 asar: true
-
-# Tum platformlar icin ortak metadata
-extraMetadata:
-  main: electron/main.js
 
 win:
   target:
-    - nsis
-    - portable
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
   icon: build/icon.ico
-  artifactName: "${productName}-Setup-${version}.${ext}"
 
 nsis:
   oneClick: false
-  perMachine: false
   allowToChangeInstallationDirectory: true
-  createDesktopShortcut: always
+  createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: OpenScriv
-  installerLanguages:
-    - tr_TR
-    - en_US
-  license: LICENSE
 
 mac:
-  category: public.app-category.productivity
   target:
-    - dmg
-    - zip
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  category: public.app-category.productivity
   icon: build/icon.icns
 
 linux:
   target:
-    - AppImage
-    - deb
-  maintainer: OpenScriv Contributors
-  category: Utility
-  icon: build/icon.png
-
-publish: null
+    - target: AppImage
+    - target: deb
+  category: Office
+  icon: build/icons

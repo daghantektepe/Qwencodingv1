@@ -1,41 +1,42 @@
 /**
- * version.ts — OpenScriv v1.0.0 Release Candidate 1
+ * version.ts — OpenScriv v2.0 Masterpiece Release Metadata
  */
 
-export interface VersionInfo {
+export const APP_VERSION = '2.0.0';
+export const APP_CODENAME = 'Masterpiece';
+export const RELEASE_DATE = '2026-10-24';
+export const TOTAL_PHASES = 100;
+
+export interface AppMetadata {
+  name: string;
   version: string;
+  phase: number;
   codename: string;
   releaseDate: string;
-  phase: number;
-  buildNumber: number;
-  features: string[];
+  totalPhases: number;
+  engine: string;
+  license: string;
+  offlineReady: boolean;
+  privacy: string;
 }
 
-export const OPEN_SCRIV_VERSION: VersionInfo = {
-  version: '1.0.0-rc1',
-  codename: 'Golden Sovereign Milestone',
-  releaseDate: '2026-10-22',
-  phase: 50,
-  buildNumber: 1050,
-  features: [
-    'Distraction-free typewriter editor',
-    'Interactive Corkboard & Outliner',
-    'Full Compile & Multi-Format Export Engine',
-    'Local-first CRDT synchronization',
-    'Codex character & location worldbuilding',
-    'Timeline plotting & multiple story arcs',
-    'In-depth writing analytics & readability metrics',
-    'Research vault & multi-asset binder',
-    'Fountain screenplay & scriptwriting mode',
-    'Smart collections & saved dynamic searches',
-    'Visual document snapshot diff & rollback',
-    'Marginalia comments & footnote system',
-    'Project template engine & novel/academic wizards',
-    'Virtual binder tree & DOM virtualization',
-    'WCAG 2.1 AAA full accessibility & screen reader announcer',
-    'AES-256-GCM zero-knowledge encrypted vault',
-    'Plugin API host & custom themes SDK',
-  ],
+export const APP_METADATA: AppMetadata = {
+  name: 'OpenScriv',
+  version: APP_VERSION,
+  phase: TOTAL_PHASES,
+  codename: APP_CODENAME,
+  releaseDate: RELEASE_DATE,
+  totalPhases: TOTAL_PHASES,
+  engine: 'TipTap ProseMirror + Electron + TypeScript',
+  license: 'MIT',
+  offlineReady: true,
+  privacy: 'Zero-Knowledge Local-First'
+};
+
+export const OPEN_SCRIV_VERSION = {
+  version: '2.0.0',
+  phase: 100,
+  codename: 'Masterpiece'
 };
 
 export default OPEN_SCRIV_VERSION;

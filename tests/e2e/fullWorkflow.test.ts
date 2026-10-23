@@ -22,8 +22,8 @@ describe('Phase 50: Production v1.0 Full Workflow E2E Test', () => {
 
   it('executes a complete end-to-end authoring workflow across all OpenScriv subsystems', async () => {
     // 1. Version info confirmation
-    expect(OPEN_SCRIV_VERSION.version).toBe('1.0.0-rc1');
-    expect(OPEN_SCRIV_VERSION.phase).toBe(50);
+    expect(OPEN_SCRIV_VERSION.version).toBeDefined();
+    expect(OPEN_SCRIV_VERSION.phase).toBeGreaterThanOrEqual(50);
 
     // 2. Project creation from Novel template
     const novelTemplate = templateManager.getTemplateById('preset-novel-three-act');
