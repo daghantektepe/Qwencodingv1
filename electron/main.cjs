@@ -34,9 +34,14 @@ function createWindow() {
   const isDev = process.env.NODE_ENV === 'development' || Boolean(process.env.VITE_DEV_SERVER_URL);
   const isDebug = isDev || process.env.OPENSCRIV_DEBUG === '1' || process.argv.includes('--debug');
 
+  const { getSanitizedWindowState, trackWindowState } = require('./windowState.cjs');
+  const winState = getSanitizedWindowState();
+
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 820,
+    x: winState.x,
+    y: winState.y,
+    width: winState.width,
+    height: winState.height,
     minWidth: 960,
     minHeight: 640,
     show: false,
@@ -50,6 +55,12 @@ function createWindow() {
     },
     titleBarStyle: 'default',
   });
+
+  if (winState.isMaximized) {
+    mainWindow.maximize();
+  }
+
+  trackWindowState(mainWindow);
 
   // Beyaz ekran kalmasını önlemek için: pencere çizilmeye hazır olduğunda göster
   let isShown = false;
