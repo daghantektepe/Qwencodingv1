@@ -3,6 +3,7 @@ import { citationEngine } from '../../src/services/citations/citationEngine';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { FootnotePopover } from '../../src/components/Citations/FootnotePopover';
+import { BibliographyManager } from '../../src/components/Citations/BibliographyManager';
 
 describe('CitationEngine (Faz 74)', () => {
   beforeEach(() => {
@@ -192,3 +193,40 @@ describe('FootnotePopover Component', () => {
     expect(citationEngine.getFootnotes('doc-1').length).toBe(0);
   });
 });
+
+describe('BibliographyManager Component', () => {
+  beforeEach(() => {
+    citationEngine.clear();
+  });
+
+  it('kaynakça modalı açıldığında kaynakları listeler ve yeni kaynak eklenmesini destekler', () => {
+    citationEngine.addCitationSource({
+      key: 'testSource1',
+      title: 'Örnek Makale',
+      author: 'Ahmet Yılmaz',
+      year: 2024,
+      publisher: 'Akademi Yayınları'
+    });
+
+    const onClose = vi.fn();
+    const onInsertCitation = vi.fn();
+
+    render(
+      <BibliographyManager
+        isOpen={true}
+        onClose={onClose}
+        onInsertCitation={onInsertCitation}
+      />
+    );
+
+    expect(screen.getByText('Kaynakça & Alıntı Yöneticisi')).toBeDefined();
+    expect(screen.getByText('Örnek Makale')).toBeDefined();
+    expect(screen.getByText(/Ahmet Yılmaz/)).toBeDefined();
+
+    // Metne ekle butonuna tıkla
+    const insertBtn = screen.getByRole('button', { name: /Metne Ekle/i });
+    fireEvent.click(insertBtn);
+    expect(onInsertCitation).toHaveBeenCalled();
+  });
+});
+
