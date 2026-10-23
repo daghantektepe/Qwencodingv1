@@ -271,6 +271,14 @@ app.whenReady().then(() => {
     console.error('[main] backup.js yuklenemedi:', err);
   }
 
+  // 6) Yerel Proje Paketi Formatı (.opscriv) Modülü (Faz 102)
+  try {
+    const { registerProjectIpcHandlers } = require('./projectIpc.cjs');
+    if (typeof registerProjectIpcHandlers === 'function') registerProjectIpcHandlers();
+  } catch (err) {
+    console.error('[main] projectIpc.cjs yuklenemedi:', err);
+  }
+
   createWindow();
 
   app.on('activate', () => {
