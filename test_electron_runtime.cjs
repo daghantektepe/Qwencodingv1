@@ -22,6 +22,12 @@ ipcMain.handle('save-document', (_event, payload) => {
   return { ok: true };
 });
 
+ipcMain.handle('window:get-platform', () => ({ platform: process.platform }));
+ipcMain.handle('window:is-maximized', () => ({ isMaximized: false }));
+ipcMain.handle('window:minimize', () => ({ ok: true }));
+ipcMain.handle('window:toggle-maximize', () => ({ ok: true, isMaximized: true }));
+ipcMain.handle('window:close', () => ({ ok: true }));
+
 app.whenReady().then(() => {
   console.log('[TEST] Electron app ready!');
   const win = new BrowserWindow({

@@ -1,0 +1,136 @@
+/**
+ * Custom Frameless Titlebar & Drag HUD Styles
+ * Phase 103: Çerçevesiz Özel Başlık Çubuğu ve Pencere Kontrolleri
+ */
+
+.custom-titlebar {
+  height: 38px;
+  background-color: var(--color-sidebar-bg, #2d241e);
+  color: #e6dfd5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+  user-select: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+  -webkit-app-region: drag;
+  z-index: 9999;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+.custom-titlebar.mac-mode {
+  padding-left: 78px; /* Traffic light boşluğu */
+}
+
+.titlebar-drag-region {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  cursor: grab;
+}
+
+.titlebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-icon {
+  width: 16px;
+  height: 16px;
+  color: #d4a373;
+}
+
+.titlebar-title-text {
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: #f7ede2;
+}
+
+.titlebar-dirty-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #e76f51;
+  display: inline-block;
+  margin-left: 6px;
+  box-shadow: 0 0 6px rgba(231, 111, 81, 0.6);
+}
+
+.titlebar-doc-badge {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  color: #ccd5ae;
+  margin-left: 8px;
+}
+
+.titlebar-controls {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-btn {
+  width: 44px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #d5c7b6;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.titlebar-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.titlebar-btn.close:hover {
+  background: #e63946;
+  color: #ffffff;
+}
+
+.titlebar-btn:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* macOS Traffic lights simulation */
+.mac-traffic-lights {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.traffic-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.traffic-dot.close { background-color: #ff5f56; }
+.traffic-dot.minimize { background-color: #ffbd2e; }
+.traffic-dot.maximize { background-color: #27c93f; }
+
+.traffic-dot:hover {
+  filter: brightness(0.9);
+}

@@ -94,6 +94,7 @@ import { SnippetManagerModal } from './components/Snippets/SnippetManagerModal.t
 import { DictionaryLookupPopover } from './components/Dictionary/DictionaryLookupPopover.tsx';
 import { BetaReaderFeedbackView } from './components/Feedback/BetaReaderFeedbackView.tsx';
 import { useTouchModeStore } from './services/platform/touchModeAdapter';
+import CustomTitlebar from './components/Window/CustomTitlebar.tsx';
 
 const INITIAL_TREE = [
   {
@@ -616,8 +617,13 @@ export function App() {
   }, []);
 
   return (
-    <div className={`app ${theme === 'dark' ? 'dark' : ''}`}>
-      {/* Sol Panel: Binder (Proje Ağacı) */}
+    <div className="desktop-app-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      <CustomTitlebar
+        projectName={project.name || 'OpenScriv Projesi'}
+        activeDocTitle={activeDoc?.title}
+      />
+      <div className={`app ${theme === 'dark' ? 'dark' : ''}`} style={{ flex: 1, height: 'calc(100vh - 38px)' }}>
+        {/* Sol Panel: Binder (Proje Ağacı) */}
       <aside className="sidebar" aria-label="Binder">
         <div className="brand">
           <div>
@@ -1282,6 +1288,7 @@ export function App() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

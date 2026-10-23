@@ -7,14 +7,22 @@ let app = null;
 
 try {
   const electron = require('electron');
-  Menu = electron.Menu;
-  app = electron.app;
+  if (electron && typeof electron === 'object') {
+    Menu = electron.Menu;
+    app = electron.app;
+  }
 } catch {
-  // Safe mock in vitest / headless environment
+  // ignore
+}
+
+if (!Menu || typeof Menu.buildFromTemplate !== 'function') {
   Menu = {
     setApplicationMenu: () => {},
     buildFromTemplate: (template) => template
   };
+}
+
+if (!app) {
   app = {
     name: 'OpenScriv',
     quit: () => {}

@@ -279,6 +279,37 @@ app.whenReady().then(() => {
     console.error('[main] projectIpc.cjs yuklenemedi:', err);
   }
 
+  // 7) Çerçevesiz Özel Başlık Çubuğu ve Pencere Kontrolleri (Faz 103)
+  ipcMain.handle('window:minimize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.minimize();
+    return { ok: true };
+  });
+
+  ipcMain.handle('window:toggle-maximize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMaximized()) {
+        mainWindow.unmaximize();
+      } else {
+        mainWindow.maximize();
+      }
+      return { ok: true, isMaximized: mainWindow.isMaximized() };
+    }
+    return { ok: false, isMaximized: false };
+  });
+
+  ipcMain.handle('window:close', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.close();
+    return { ok: true };
+  });
+
+  ipcMain.handle('window:is-maximized', () => {
+    return { isMaximized: mainWindow ? mainWindow.isMaximized() : false };
+  });
+
+  ipcMain.handle('window:get-platform', () => {
+    return { platform: process.platform };
+  });
+
   createWindow();
 
   app.on('activate', () => {
