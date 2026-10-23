@@ -76,7 +76,7 @@ const safeRoleLabels = ROLE_LABELS || FALLBACK_ROLE_LABELS;
 const safeRelationshipLabels = RELATIONSHIP_LABELS || FALLBACK_RELATIONSHIP_LABELS;
 const safeRelationshipColors = RELATIONSHIP_COLORS || FALLBACK_RELATIONSHIP_COLORS;
 
-export default function CodexManager() {
+export function CodexManager() {
   const store = getCodexStore();
   const [state, setState] = useState<CodexState>(store.getState());
   const [showAddForm, setShowAddForm] = useState(false);
@@ -783,3 +783,5 @@ export default function CodexManager() {
     </div>
   );
 }
+
+export default CodexManager;
