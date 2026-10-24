@@ -6,16 +6,29 @@
 const { Tray, Menu, globalShortcut, BrowserWindow, ipcMain, nativeImage } = require('electron');
 const path = require('path');
 
+const fs = require('fs');
+
 let trayInstance = null;
 let quickNoteWindow = null;
 
-function createDummyIcon() {
+function getTrayIcon() {
   try {
-    // 16x16 1-piksel şeffaf/renkli PNG buffer simülasyonu
+    const icoPath = path.join(__dirname, '../build/icon.ico');
+    const pngPath = path.join(__dirname, '../build/icon.png');
+    if (fs.existsSync(icoPath)) {
+      return nativeImage.createFromPath(icoPath);
+    }
+    if (fs.existsSync(pngPath)) {
+      return nativeImage.createFromPath(pngPath);
+    }
     return nativeImage.createEmpty();
   } catch {
-    return null;
+    return nativeImage.createEmpty();
   }
+}
+
+function createDummyIcon() {
+  return getTrayIcon();
 }
 
 function createQuickNoteWindow(parentWindow = null) {
@@ -39,7 +52,7 @@ function createQuickNoteWindow(parentWindow = null) {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
     },
   });
 

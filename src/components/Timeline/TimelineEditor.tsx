@@ -8,11 +8,22 @@ interface TimelineEditorProps {
 }
 
 export const TimelineEditor: React.FC<TimelineEditorProps> = ({ onClose, existingEvent }) => {
-  const [formData, setFormData] = useState<TimelineEvent>(
+  const [formData, setFormData] = useState<any>(
     existingEvent || {
-      id: crypto.randomUUID(),
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `event_${Date.now()}`,
       title: '',
       description: '',
+      timelinePosition: 0,
+      timelineLabel: '',
+      narrativeOrder: 0,
+      category: 'plot',
+      color: '#3B82F6',
+      isMajorEvent: false,
+      isDraft: false,
+      notes: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      characterIds: [],
       date: '',
       time: '',
       position: 'chronological',
@@ -26,7 +37,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({ onClose, existin
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev: any) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -60,7 +71,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({ onClose, existin
         <input 
           name="tagsInput" 
           defaultValue={formData.tags.join(',')} 
-          onChange={(e) => setFormData(prev => ({...prev, tags: e.target.value.split(',').map(t=>t.trim()).filter(Boolean)}))} 
+          onChange={(e) => setFormData((prev: any) => ({...prev, tags: e.target.value.split(',').map(t=>t.trim()).filter(Boolean)}))} 
           style={{ width: '100%', marginBottom: '10px' }} 
         />
 

@@ -38,7 +38,10 @@ export interface ElectronBackupBridge {
 }
 
 export interface ElectronAPIBridge {
+  isDesktop?: boolean;
   invoke: (channel: string, ...args: any[]) => Promise<any>;
+  on?: (channel: string, listener: (event: any, ...args: any[]) => void) => (() => void) | void;
+  removeListener?: (channel: string, listener: (...args: any[]) => void) => void;
   getAppVersion: () => Promise<string>;
   getUserDataPath: () => Promise<string>;
   saveDocument: (payload: ElectronDocumentPayload) => Promise<ElectronDocumentResult>;
@@ -59,9 +62,12 @@ export interface ElectronAPIBridge {
   backup: ElectronBackupBridge;
 }
 
+export type ElectronAPI = ElectronAPIBridge;
+
 declare global {
   interface Window {
     electronAPI?: ElectronAPIBridge;
+    electronBridge?: ElectronAPIBridge;
     api?: ElectronAPIBridge;
     openScriv?: ElectronAPIBridge;
   }

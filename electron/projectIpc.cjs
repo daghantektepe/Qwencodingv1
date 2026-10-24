@@ -12,6 +12,26 @@ function computeHash(content) {
   return crypto.createHash('sha256').update(content).digest('hex');
 }
 
+function sanitizeFileName(name) {
+  if (!name || typeof name !== 'string') return '';
+  return path.basename(name).replace(/[^a-zA-Z0-9_\-\. ]/g, '_');
+}
+
+function sanitizeDocId(docId) {
+  if (!docId || typeof docId !== 'string') return '';
+  return path.basename(docId).replace(/[^a-zA-Z0-9_\-]/g, '_');
+}
+
+function assertPathWithinRoot(targetPath, rootDir) {
+  const resolvedTarget = path.resolve(targetPath);
+  const resolvedRoot = path.resolve(rootDir);
+  const relative = path.relative(resolvedRoot, resolvedTarget);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+    throw new Error(`Yol ihlali tespit edildi: Hedef yol (${resolvedTarget}), izin verilen kok dizin (${resolvedRoot}) disinda!`);
+  }
+  return resolvedTarget;
+}
+
 async function ensureDir(dirPath) {
   await fs.mkdir(dirPath, { recursive: true });
 }
@@ -46,8 +66,12 @@ function registerProjectIpcHandlers() {
         throw new Error('parentDir ve projectName zorunludur.');
       }
 
-      const safeName = projectName.endsWith('.opscriv') ? projectName : `${projectName}.opscriv`;
-      const packagePath = path.join(parentDir, safeName);
+      const cleanProjectName = sanitizeFileName(projectName);
+      if (!cleanProjectName) throw new Error('Geçersiz proje adı.');
+
+      const safeName = cleanProjectName.endsWith('.opscriv') ? cleanProjectName : `${cleanProjectName}.opscriv`;
+      const resolvedParent = path.resolve(parentDir);
+      const packagePath = assertPathWithinRoot(path.join(resolvedParent, safeName), resolvedParent);
 
       // Klasör yapısını kur
       await ensureDir(packagePath);
@@ -58,11 +82,11 @@ function registerProjectIpcHandlers() {
 
       const now = new Date().toISOString();
       const manifest = {
-        name: projectName.replace(/\.opscriv$/, ''),
+        name: cleanProjectName.replace(/\.opscriv$/, ''),
         formatVersion: '2.1',
         createdAt: now,
         updatedAt: now,
-        generator: 'OpenScriv v2.0 Desktop Mastery',
+        generator: 'OpenScriv v2.1 Desktop Mastery',
         checksum: '',
       };
 
@@ -87,7 +111,11 @@ function registerProjectIpcHandlers() {
       if (Array.isArray(initialDocs)) {
         for (const doc of initialDocs) {
           if (doc.id) {
-            await writeAtomic(path.join(packagePath, 'docs', `${doc.id}.md`), doc.content || '');
+            const safeId = sanitizeDocId(doc.id);
+            if (safeId) {
+              const safeDocPath = assertPathWithinRoot(path.join(packagePath, 'docs', `${safeId}.md`), packagePath);
+              await writeAtomic(safeDocPath, doc.content || '');
+            }
           }
         }
       } else {
@@ -108,9 +136,10 @@ function registerProjectIpcHandlers() {
     try {
       if (!packagePath) throw new Error('packagePath zorunludur.');
 
-      const manifestPath = path.join(packagePath, 'manifest.json');
-      const binderPath = path.join(packagePath, 'binder.json');
-      const docsDir = path.join(packagePath, 'docs');
+      const resolvedPackage = path.resolve(packagePath);
+      const manifestPath = assertPathWithinRoot(path.join(resolvedPackage, 'manifest.json'), resolvedPackage);
+      const binderPath = assertPathWithinRoot(path.join(resolvedPackage, 'binder.json'), resolvedPackage);
+      const docsDir = assertPathWithinRoot(path.join(resolvedPackage, 'docs'), resolvedPackage);
 
       const manifestRaw = await fs.readFile(manifestPath, 'utf8');
       const manifest = JSON.parse(manifestRaw);
@@ -127,13 +156,14 @@ function registerProjectIpcHandlers() {
       for (const file of docFiles) {
         if (file.endsWith('.md')) {
           const docId = path.basename(file, '.md');
-          documents[docId] = await fs.readFile(path.join(docsDir, file), 'utf8');
+          const safeDocPath = assertPathWithinRoot(path.join(docsDir, file), resolvedPackage);
+          documents[docId] = await fs.readFile(safeDocPath, 'utf8');
         }
       }
 
       return {
         ok: true,
-        packagePath,
+        packagePath: resolvedPackage,
         manifest,
         binder,
         documents,
@@ -147,11 +177,16 @@ function registerProjectIpcHandlers() {
   ipcMain.handle('project:save-doc-atomic', async (_event, { packagePath, docId, content }) => {
     try {
       if (!packagePath || !docId) throw new Error('packagePath ve docId zorunludur.');
-      const docPath = path.join(packagePath, 'docs', `${docId}.md`);
+
+      const resolvedPackage = path.resolve(packagePath);
+      const safeId = sanitizeDocId(docId);
+      if (!safeId) throw new Error('Geçersiz docId.');
+
+      const docPath = assertPathWithinRoot(path.join(resolvedPackage, 'docs', `${safeId}.md`), resolvedPackage);
       await writeAtomic(docPath, String(content ?? ''));
 
       // Güncelleme zaman damgasını manifest'e yansıt
-      const manifestPath = path.join(packagePath, 'manifest.json');
+      const manifestPath = assertPathWithinRoot(path.join(resolvedPackage, 'manifest.json'), resolvedPackage);
       try {
         const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
         manifest.updatedAt = new Date().toISOString();
@@ -160,7 +195,7 @@ function registerProjectIpcHandlers() {
         // manifest yazılamasa da doc atomik olarak güvenle kaydedilmiştir
       }
 
-      return { ok: true, docId, path: docPath, savedAt: Date.now() };
+      return { ok: true, docId: safeId, path: docPath, savedAt: Date.now() };
     } catch (err) {
       return { ok: false, error: err.message };
     }
@@ -170,11 +205,13 @@ function registerProjectIpcHandlers() {
   ipcMain.handle('project:save-binder-atomic', async (_event, { packagePath, binder }) => {
     try {
       if (!packagePath || !binder) throw new Error('packagePath ve binder zorunludur.');
-      const binderPath = path.join(packagePath, 'binder.json');
+
+      const resolvedPackage = path.resolve(packagePath);
+      const binderPath = assertPathWithinRoot(path.join(resolvedPackage, 'binder.json'), resolvedPackage);
       const binderStr = JSON.stringify(binder, null, 2);
       await writeAtomic(binderPath, binderStr);
 
-      const manifestPath = path.join(packagePath, 'manifest.json');
+      const manifestPath = assertPathWithinRoot(path.join(resolvedPackage, 'manifest.json'), resolvedPackage);
       try {
         const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
         manifest.updatedAt = new Date().toISOString();
@@ -195,4 +232,7 @@ module.exports = {
   registerProjectIpcHandlers,
   writeAtomic,
   computeHash,
+  sanitizeFileName,
+  sanitizeDocId,
+  assertPathWithinRoot,
 };

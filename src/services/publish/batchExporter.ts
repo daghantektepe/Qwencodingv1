@@ -85,7 +85,9 @@ export class BatchExporterService {
     onProgress?: (progressPercent: number, currentFormat: BatchFormat) => void
   ): Promise<BatchExportResult> {
     const files: GeneratedBatchFile[] = [];
-    const formats = config.formats.length > 0 ? config.formats : ['pdf', 'epub', 'docx', 'markdown', 'html', 'txt'];
+    const formats: BatchFormat[] = config.formats.length > 0
+      ? config.formats
+      : ['pdf', 'epub', 'docx', 'markdown', 'html', 'txt'];
     const totalFormats = formats.length;
 
     const baseName = config.projectName.toLowerCase().replace(/[^a-z0-9_-]/g, '_');

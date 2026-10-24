@@ -283,6 +283,18 @@ class CodexStoreImpl {
 
     return mentions.sort((a, b) => a.position - b.position);
   }
+
+  extractMentions(text: string): CodexMention[] {
+    return this.findMentionsInText(text);
+  }
+
+  getGraphData() {
+    const { characters, relationships } = this.state;
+    return {
+      nodes: characters.map((c) => ({ id: c.id, label: c.name, role: c.role })),
+      edges: relationships.map((r) => ({ source: r.sourceId, target: r.targetId, label: r.type })),
+    };
+  }
 }
 
 function escapeRegex(str: string): string {

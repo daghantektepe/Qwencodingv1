@@ -59,7 +59,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
     },
     titleBarStyle: 'default',
   });
@@ -135,6 +135,24 @@ function createWindow() {
 
   if (isDebug) {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
+  }
+
+  const isSmokeTest = process.argv.includes('--smoke-test');
+  if (isSmokeTest) {
+    console.log('[SMOKE TEST] Smoke test modu aktif, pencere doğrulanıyor...');
+    mainWindow.webContents.once('did-finish-load', () => {
+      console.log('[SMOKE TEST] BrowserWindow yüklendi ve DOM hazır.');
+      setTimeout(() => {
+        console.log('[SMOKE TEST] Gerçek Electron penceresi başarıyla doğrulandı. Çıkılıyor (0).');
+        app.quit();
+        process.exit(0);
+      }, 1000);
+    });
+
+    mainWindow.webContents.once('did-fail-load', (e, code, desc) => {
+      console.error(`[SMOKE TEST HATA] did-fail-load: ${code} - ${desc}`);
+      process.exit(1);
+    });
   }
 
   mainWindow.on('closed', () => {

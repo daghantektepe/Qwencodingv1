@@ -75,6 +75,9 @@ export interface Presence {
   online: boolean;
 }
 
+export type PeerPresence = Presence;
+export type SyncStatus = 'synced' | 'syncing' | 'offline' | 'error' | 'conflict';
+
 /**
  * Senkronizasyon durumu
  */

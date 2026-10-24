@@ -11,7 +11,7 @@ export class WordGoalReminderPlugin implements OpenScrivPlugin {
     version: '1.0.0',
     author: 'OpenScriv Team',
     description: 'Yazım hedefinize ulaştığınızda tebrik ve motivasyon bildirimleri sunar.',
-    permissions: ['notifications', 'storage'] as const,
+    permissions: ['notifications', 'storage'] as ('notifications' | 'storage' | 'editor-read' | 'theme-switch')[],
   };
 
   private context: PluginContext | null = null;

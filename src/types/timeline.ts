@@ -18,6 +18,9 @@ export interface TimelineEvent {
   timelineLabel: string; // Human-readable label (e.g., "Year 3, Spring")
   // Narrative position (chapter/scene order)
   narrativeOrder: number;
+  chapterOrder?: number;
+  date?: string;
+  time?: string;
   chapterId?: string;
   sceneId?: string;
   // Categorization

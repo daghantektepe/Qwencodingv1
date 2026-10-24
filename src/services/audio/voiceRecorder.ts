@@ -120,7 +120,7 @@ export class VoiceRecorderService {
       id: recordingId,
       title,
       durationSeconds: elapsed,
-      blobUrl: typeof URL !== 'undefined' && URL.createObjectURL && this.audioChunks.length > 0
+      blobUrl: typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function' && this.audioChunks.length > 0
         ? URL.createObjectURL(new Blob(this.audioChunks, { type: 'audio/webm' }))
         : `blob:mock-audio/${recordingId}`,
       mimeType: 'audio/webm',

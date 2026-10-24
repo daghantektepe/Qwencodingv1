@@ -10,6 +10,14 @@ import {
   TaxonomyFilter
 } from '../../types/taxonomy';
 
+export type {
+  TaxonomyTag,
+  DocumentTaxonomyMapping,
+  TaxonomyCategory,
+  ColorStripStyle,
+  TaxonomyFilter
+};
+
 const DEFAULT_TAGS: TaxonomyTag[] = [
   { id: 'tag-pov-sherlock', name: 'Sherlock (POV)', category: 'pov', color: '#38bdf8', description: 'Ana dedektif bakış açısı' },
   { id: 'tag-pov-watson', name: 'Watson (POV)', category: 'pov', color: '#fbbf24', description: 'Yardımcı dedektif anlatıcı' },

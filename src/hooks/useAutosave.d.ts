@@ -36,11 +36,14 @@ export interface AutosaveDocument {
  * Electron API interface for document persistence.
  */
 export interface ElectronAPI {
+  invoke?: (channel: string, ...args: any[]) => Promise<any>;
+  on?: (channel: string, listener: (event: any, ...args: any[]) => void) => any;
   saveDocument: (payload: {
     projectId: string;
     docId: string;
     content: string;
   }) => Promise<PersistResult | void>;
+  [key: string]: any;
 }
 
 /**

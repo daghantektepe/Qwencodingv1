@@ -34,3 +34,18 @@ jobs:
 
       - name: Run Vitest Test Suite (Unit & Ecosystem Integration)
         run: npm test
+
+      - name: Run Real Electron Windows Smoke Test
+        if: runner.os == 'Windows'
+        run: npm run smoke
+
+      - name: Package Windows Distribution (NSIS Installer & Portable EXE)
+        if: runner.os == 'Windows'
+        run: npm run dist:win
+
+      - name: Upload Windows Distribution Artifacts
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: openscriv-windows-dist
+          path: release-builds/*.exe
