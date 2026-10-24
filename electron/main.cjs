@@ -2,6 +2,14 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs/promises');
 
+// 13) GPU Donanım Hızlandırma Bayrakları (Faz 110)
+try {
+  const { applyHardwareSwitches } = require('./hardwareFlags.cjs');
+  applyHardwareSwitches();
+} catch (err) {
+  console.warn('[main] hardwareFlags uygulanamadı:', err.message);
+}
+
 let mainWindow;
 
 // --- Yerel proje dizini ayarlari ---
@@ -331,9 +339,108 @@ app.whenReady().then(() => {
 
   createWindow();
 
+  // 9) Sistem Tepsisi ve Global Kısayol Modülü (Faz 106)
+  try {
+    const { initSystemTray, registerTrayIpcHandlers } = require('./systemTray.cjs');
+    initSystemTray(mainWindow);
+    registerTrayIpcHandlers(mainWindow);
+  } catch (err) {
+    console.error('[main] systemTray.cjs yuklenemedi:', err);
+  }
+
+  // 10) Tam Yerel İşletim Sistemi Menüleri (Faz 107)
+  try {
+    const { setupApplicationMenu } = require('./menuTemplate.cjs');
+    setupApplicationMenu(mainWindow);
+  } catch (err) {
+    console.error('[main] menuTemplate.cjs yuklenemedi:', err);
+  }
+
+  // 11) Yerel Dosya Değişiklik İzleyicisi (Faz 108)
+  try {
+    const { registerWatcherHandlers } = require('./watcherIpc.cjs');
+    registerWatcherHandlers(mainWindow);
+  } catch (err) {
+    console.error('[main] watcherIpc.cjs yuklenemedi:', err);
+  }
+
+  // 12) SQLite & FTS5 Arama Motoru (Faz 109)
+  try {
+    const { registerFtsHandlers } = require('./sqliteStore.cjs');
+    registerFtsHandlers();
+  } catch (err) {
+    console.error('[main] sqliteStore.cjs yuklenemedi:', err);
+  }
+
+  // 13) GPU Donanım Hızlandırma Bilgi Servisi (Faz 110)
+  try {
+    const { registerHardwareIpcHandlers } = require('./hardwareFlags.cjs');
+    registerHardwareIpcHandlers();
+  } catch (err) {
+    console.error('[main] hardwareFlags registerIpc yuklenemedi:', err);
+  }
+
+  // 14) Yerel Chromium Vektörel PDF ve Matbaa Baskı Motoru (Faz 111)
+  try {
+    const { registerPdfIpcHandlers } = require('./pdfPrinter.cjs');
+    registerPdfIpcHandlers();
+  } catch (err) {
+    console.error('[main] pdfPrinter.cjs yuklenemedi:', err);
+  }
+
+  // 15) Otomatik Güncelleyici ve Sürüm Kontrolü (Faz 112)
+  try {
+    const { registerUpdaterHandlers } = require('./updater.cjs');
+    registerUpdaterHandlers();
+  } catch (err) {
+    console.error('[main] updater.cjs yuklenemedi:', err);
+  }
+
+  // 16) Yerel Pano (Clipboard) ve Zengin Medya Köprüsü (Faz 114)
+  try {
+    const { registerClipboardHandlers } = require('./clipboardIpc.cjs');
+    registerClipboardHandlers();
+  } catch (err) {
+    console.error('[main] clipboardIpc.cjs yuklenemedi:', err);
+  }
+
+  // 17) Yerel İmla Denetimi ve Edebi Sözlük (Faz 115)
+  try {
+    const { registerSpellcheckerHandlers, spellcheckerInstance } = require('./spellchecker.cjs');
+    registerSpellcheckerHandlers();
+    spellcheckerInstance.initSessionSpellcheck();
+  } catch (err) {
+    console.error('[main] spellchecker.cjs yuklenemedi:', err);
+  }
+
+  // 18) İşletim Sistemi Tema & Vurgu Rengi Senkronu (Faz 116)
+  try {
+    const { registerThemeIpcHandlers } = require('./themeIpc.cjs');
+    registerThemeIpcHandlers();
+  } catch (err) {
+    console.error('[main] themeIpc.cjs yuklenemedi:', err);
+  }
+
+  // 19) Yerel İşletim Sistemi Bildirimleri (Faz 117)
+  try {
+    const { registerNotificationIpcHandlers } = require('./notificationIpc.cjs');
+    registerNotificationIpcHandlers();
+  } catch (err) {
+    console.error('[main] notificationIpc.cjs yuklenemedi:', err);
+  }
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+
+app.on('will-quit', () => {
+  try {
+    const { destroyTray } = require('./systemTray.cjs');
+    destroyTray();
+  } catch {
+    // ignore
+  }
 });
 
 app.on('window-all-closed', () => {

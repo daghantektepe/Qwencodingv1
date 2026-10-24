@@ -1,17 +1,22 @@
-appId: com.openscriv.app
+appId: com.openscriv.desktop
 productName: OpenScriv
-copyright: Copyright © 2026 OpenScriv Contributors
+copyright: "Copyright © 2026 OpenScriv Authors"
 
 directories:
-  output: release/
-  buildResources: build/
+  output: release-builds
+  buildResources: build
 
 files:
   - dist/**/*
-  - src/electron/**/*
+  - electron/**/*
   - package.json
 
-asar: true
+fileAssociations:
+  - ext: opscriv
+    name: OpenScriv Project Package
+    description: OpenScriv Native Writing Studio Project
+    role: Editor
+    mimeType: application/x-openscriv
 
 win:
   target:
@@ -21,7 +26,9 @@ win:
     - target: portable
       arch:
         - x64
-  icon: build/icon.ico
+  fileAssociations:
+    - ext: opscriv
+      name: OpenScriv Project Package
 
 nsis:
   oneClick: false
@@ -31,17 +38,23 @@ nsis:
   shortcutName: OpenScriv
 
 mac:
+  category: public.app-category.productivity
   target:
     - target: dmg
       arch:
         - x64
         - arm64
-  category: public.app-category.productivity
-  icon: build/icon.icns
+    - target: zip
+      arch:
+        - x64
+        - arm64
 
 linux:
+  category: Office
   target:
     - target: AppImage
+      arch:
+        - x64
     - target: deb
-  category: Office
-  icon: build/icons
+      arch:
+        - x64

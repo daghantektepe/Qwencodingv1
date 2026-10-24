@@ -1,0 +1,68 @@
+/**
+ * GPU Hardware Acceleration & Fluid 60/120 FPS Rendering Styles
+ * Phase 110: GPU Donanım Hızlandırma, VSync ve Arayüz Akıcılık Optimizasyonu
+ */
+
+/* Donanım Katmanı Hızlandırması (GPU Compositing Layer) */
+.gpu-accelerated,
+.editor-shell,
+.sidebar,
+.inspector,
+.custom-titlebar {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Yüksek Hızlı Akıcı Kaydırma (Zero-Jitter Smooth Scrolling) */
+.fluid-scroll,
+.editor-content,
+.sidebar-tree-container,
+.corkboard-grid {
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  will-change: scroll-position;
+}
+
+/* Render İzolasyonu (Sayfa yeniden çizimlerini sadece ilgili panele hapseder) */
+.render-isolated {
+  contain: layout style paint;
+}
+
+/* Panel Geçişleri ve Açılır Pencereler İçin VSync Kilitli Mikro Animasyonlar */
+.smooth-panel-transition {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
+/* Sıfır Yırtılma İndeks Kartları */
+.corkboard-card,
+.timeline-card {
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+.corkboard-card:hover {
+  transform: translate3d(0, -2px, 0);
+}
+
+/* Pürüzsüz GPU Kaydırma Çubukları */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(120, 100, 80, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 100, 80, 0.4);
+}
