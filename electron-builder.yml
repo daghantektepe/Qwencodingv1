@@ -2,6 +2,7 @@ appId: com.openscriv.desktop
 productName: OpenScriv
 copyright: "Copyright © 2026 OpenScriv Authors"
 npmRebuild: false
+publish: null
 
 directories:
   output: release-builds
