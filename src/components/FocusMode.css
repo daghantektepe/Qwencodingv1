@@ -137,12 +137,8 @@
 /* --- Daktilo yuzeyi --- */
 
 .focusmode__surface {
-  flex: 1;
   width: 100%;
-  border: none;
-  outline: none;
-  resize: none;
-  background: transparent;
+  box-sizing: border-box;
   color: var(--text-primary, #2f2b24);
   caret-color: var(--accent, #7a6c4f);
 
@@ -157,41 +153,18 @@
 
   /* Daktilo scrolling'un kalbi: metin ortada baslasin diye genis dolgu */
   padding: 42vh 8px 42vh;
-  overflow-y: auto;
+}
+
+.focusmode__paper .rt__scroll {
   scrollbar-width: none;
 }
 
-.focusmode__surface::-webkit-scrollbar {
+.focusmode__paper .rt__scroll::-webkit-scrollbar {
   display: none;
 }
 
-.focusmode__surface::placeholder {
-  color: var(--text-muted, #948b78);
-  font-style: italic;
-}
-
-.focusmode__surface::selection {
+.focusmode__surface ::selection {
   background: var(--accent-soft, rgba(122, 108, 79, 0.12));
-}
-
-/* --- Caret olcum aynasi (gorunmez) --- */
-
-.focusmode__mirror {
-  position: absolute;
-  visibility: hidden;
-  pointer-events: none;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  overflow: hidden;
-  top: 0;
-  left: -9999px;
-  z-index: -1;
-}
-
-.fm-mirror-caret {
-  display: inline-block;
-  width: 0;
-  height: 1em;
 }
 
 /* --- Alt durum seridi --- */
@@ -237,8 +210,16 @@
   background: var(--text-muted, #948b78);
 }
 
-.fm-badge--typing .fm-badge__dot {
+.fm-badge--dirty .fm-badge__dot {
   background: var(--warning, #c98a2d);
+}
+
+.fm-badge--error {
+  color: var(--danger, #9c3a3a);
+}
+
+.fm-badge--error .fm-badge__dot {
+  background: var(--danger, #9c3a3a);
 }
 
 .fm-badge--saving .fm-badge__dot {

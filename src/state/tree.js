@@ -220,10 +220,16 @@ export const deleteNode = removeNode;
 /**
  * Dokuman icerigini gunceller (editor autosave ile senkron).
  */
-export function updateDocContent(tree, id, content) {
+// content: düz metin (sayım, arama, derleme bunu okur); contentHtml: editörün zengin metni.
+// contentHtml verilmezse (snapshot, not defteri gibi düz metin yazanlar) eskisi atılır;
+// editör zengin metni düz metinden yeniden kurar.
+export function updateDocContent(tree, id, content, contentHtml) {
   const walk = (nodes) =>
     nodes.map((n) => {
-      if (n.id === id && n.type === 'doc') return { ...n, content };
+      if (n.id === id && n.type === 'doc') {
+        const { contentHtml: _stale, ...rest } = n;
+        return contentHtml === undefined ? { ...rest, content } : { ...rest, content, contentHtml };
+      }
       if (n.type === 'folder' && Array.isArray(n.children)) {
         return { ...n, children: walk(n.children) };
       }

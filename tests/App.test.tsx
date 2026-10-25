@@ -1,5 +1,4 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { act, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { App } from '../src/App';
 import { countWords, createSampleProject, projectWordCount } from '../src/lib/project';
@@ -14,12 +13,14 @@ describe('OpenScriv MVP', () => {
   });
 
   it('updates the active document text and word count', async () => {
-    const user = userEvent.setup();
     render(<App />);
 
-    const editor = screen.getByLabelText('Manuscript editor');
-    await user.clear(editor);
-    await user.type(editor, 'One two three four');
+    // jsdom's simulated typing races ProseMirror's DOM reconciliation under load and drops
+    // characters, so drive the TipTap editor through its own API (emits a real update).
+    const surface = screen.getByLabelText('Manuscript editor') as HTMLElement & { editor: any };
+    act(() => {
+      surface.editor.commands.setContent('<p>One <strong>two</strong> three four</p>', true);
+    });
 
     expect(screen.getByText('4 words')).toBeInTheDocument();
   });

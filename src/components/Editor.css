@@ -97,24 +97,18 @@
 
 /* --- Yazim yuzeyi --- */
 
+/* Okunabilir satır uzunluğunda ortalanmış sütun; alttaki boşluk son satırın yukarı kaydırılabilmesi için */
 .editor__area {
-  flex: 1;
-  min-height: 0;
-  resize: none;
-  border: none;
-  outline: none;
-  background: transparent;
+  width: 100%;
+  max-width: 72ch;
+  margin: 0 auto;
+  box-sizing: border-box;
   color: var(--text-primary, #2f2b24);
   font-family: var(--editor-font, 'Iowan Old Style', 'Palatino Linotype', Georgia, serif);
   font-size: var(--editor-font-size, 17px);
   line-height: var(--editor-line-height, 1.7);
-  padding: var(--sp-5, 24px) clamp(var(--sp-5, 24px), 10vw, 120px);
+  padding: var(--sp-5, 24px) var(--sp-5, 24px) 30vh;
   caret-color: var(--accent, #7a6c4f);
-}
-
-.editor__area::placeholder {
-  color: var(--text-faint, #b8ae9a);
-  font-style: italic;
 }
 
 /* --- Alt serit --- */

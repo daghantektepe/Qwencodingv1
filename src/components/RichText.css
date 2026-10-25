@@ -1,0 +1,116 @@
+/* ==========================================================================
+   OpenScriv — RichText (TipTap) yazım yüzeyi
+   ========================================================================== */
+
+.rt {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.rt__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px var(--sp-5, 24px);
+  border-bottom: 1px solid var(--border, #eee7d8);
+}
+
+.rt__tool {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--r-sm, 6px);
+  background: transparent;
+  color: var(--text-secondary, #6b6455);
+  cursor: pointer;
+}
+
+.rt__tool:hover:not(:disabled) {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+  color: var(--text-primary, #2f2b24);
+}
+
+.rt__tool.is-active {
+  background: var(--bg-selected, #dfd8c6);
+  color: var(--text-primary, #2f2b24);
+}
+
+.rt__tool:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.rt__tool:focus-visible {
+  outline: 2px solid var(--accent, #7a6c4f);
+  outline-offset: 1px;
+}
+
+.rt__divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 6px;
+  background: var(--border, #eee7d8);
+}
+
+.rt__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Metnin altındaki boş alana tıklayınca da editöre odaklanılsın */
+.rt__scroll > div {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.rt .ProseMirror {
+  flex: 1;
+  outline: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  tab-size: 4;
+}
+
+.rt .ProseMirror p {
+  margin: 0 0 0.85em;
+}
+
+.rt .ProseMirror h2 {
+  font-size: 1.35em;
+  line-height: 1.3;
+  margin: 1.2em 0 0.5em;
+}
+
+.rt .ProseMirror blockquote {
+  margin: 0 0 0.85em;
+  padding-left: 1em;
+  border-left: 3px solid var(--border-strong, #c4bba6);
+  color: var(--text-secondary, #6b6455);
+  font-style: italic;
+}
+
+.rt .ProseMirror ul,
+.rt .ProseMirror ol {
+  margin: 0 0 0.85em;
+  padding-left: 1.5em;
+}
+
+.rt .ProseMirror li p {
+  margin: 0;
+}
+
+.rt .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--text-faint, #b8ae9a);
+  font-style: italic;
+}

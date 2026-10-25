@@ -460,8 +460,8 @@ export function App() {
     setSearchOpen(false);
   }, [addTab, tree]);
 
-  const handleContentChange = useCallback((docId: string, newContent: string) => {
-    updateDocContent(docId, newContent);
+  const handleContentChange = useCallback((docId: string, newContent: string, html?: string) => {
+    updateDocContent(docId, newContent, html);
   }, [updateDocContent]);
 
   const handleUpdateSynopsis = useCallback((nodeId: string, newSynopsis: string) => {
@@ -1148,6 +1148,7 @@ export function App() {
         onClose={() => setFocusModeOpen(false)}
         doc={activeDoc}
         onChange={handleContentChange}
+        saveState={saveState}
       />
 
       {/* Hızlı Komut Paleti */}

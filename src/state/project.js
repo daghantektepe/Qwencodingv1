@@ -210,7 +210,7 @@ export function loadProject(json) {
  * @returns {{
  *   project, tree, setProject,
  *   addDoc(title, parentId, factory), deleteNode(id), renameNode(id, title),
- *   updateDocContent(id, content),
+ *   updateDocContent(id, content, contentHtml?),
  *   updateMetadata(docId, newMeta),
  *   getMetadata(docId),
  *   addKeyword(id, kw), removeKeyword(id, kw), toggleLabel(id, label),
@@ -266,8 +266,8 @@ export function useProjectState({
   );
 
   const updateDocContent = useCallback(
-    (id, content) =>
-      commit({ ...project, tree: treeUpdateDocContent(project.tree, id, content) }),
+    (id, content, contentHtml) =>
+      commit({ ...project, tree: treeUpdateDocContent(project.tree, id, content, contentHtml) }),
     [project, commit]
   );
 

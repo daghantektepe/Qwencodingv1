@@ -1,5 +1,14 @@
 import '@testing-library/jest-dom';
 
+// ProseMirror (TipTap editörü) jsdom'da olmayan yerleşim API'lerini çağırır.
+const emptyRect = () => new DOMRect(0, 0, 0, 0);
+const emptyRects = () => Object.assign([], { item: () => null }) as unknown as DOMRectList;
+Range.prototype.getBoundingClientRect ??= emptyRect;
+Range.prototype.getClientRects ??= emptyRects;
+Text.prototype.getBoundingClientRect ??= emptyRect;
+Text.prototype.getClientRects ??= emptyRects;
+document.elementFromPoint ??= () => null;
+
 // Mock canvas getContext for tests
 HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation(() => ({
   clearRect: vi.fn(),

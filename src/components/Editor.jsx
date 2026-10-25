@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import RichText from './RichText.jsx';
 import './Editor.css';
 
 /**
@@ -8,13 +9,12 @@ import './Editor.css';
  *  - Artık kendi kendine "kaydedildi" taklidi yapan setTimeout YOK. Kayıt
  *    durumu tamamen App/useAutosave'in gerçek IPC-onaylı durum makinesinden
  *    (saveState: idle|dirty|saving|saved|error) gelir.
- *  - Ctrl+S → onSaveNow ile anında flush tetikler.
+ *  - Yazım yüzeyi TipTap zengin metin (RichText); Ctrl+S App'te global.
  *  - Odak/dikkat çizgisi, kelime hedefi halkası ve canlı sayaç korunur.
  *
  * props:
- *   doc: { id, title, content?, synopsis?, wordTarget? } | null
- *   onChange: (docId, content) => void                 — her keystroke (App debounce eder)
- *   onSaveNow: (docId, content) => void                — Ctrl+S / buton: flush iste
+ *   doc: { id, title, content?, contentHtml?, synopsis?, wordTarget? } | null
+ *   onChange: (docId, plainText, html) => void         — her değişiklik (App debounce eder)
  *   onRename: (docId, title) => void
  *   wordTarget: number                                 — 0 = hedef yok
  *   saveState: 'idle'|'dirty'|'saving'|'saved'|'error' — dış durum makinesi
@@ -39,7 +39,6 @@ export default function Editor({
   doc,
   document,
   onChange,
-  onSaveNow,
   onRename,
   wordTarget = 0,
   saveState = 'idle',
@@ -47,7 +46,6 @@ export default function Editor({
   ariaLabel = 'Manuscript editor',
 }) {
   const actualDoc = doc || document;
-  const taRef = useRef(null);
   const [titleDraft, setTitleDraft] = useState(actualDoc?.title ?? '');
   const [editingTitle, setEditingTitle] = useState(false);
 
@@ -61,43 +59,12 @@ export default function Editor({
   const ratio = wordTarget > 0 ? Math.min(1, words / wordTarget) : 0;
   const pct = Math.round(ratio * 100);
 
-  const handleChange = useCallback(
-    (e) => {
-      if (actualDoc && onChange) onChange(actualDoc.id, e.target.value);
-    },
-    [actualDoc, onChange]
-  );
-
   const commitRename = useCallback(() => {
     setEditingTitle(false);
     const t = titleDraft.trim();
     if (actualDoc && t && t !== actualDoc.title && onRename) onRename(actualDoc.id, t);
     else setTitleDraft(actualDoc?.title ?? '');
   }, [actualDoc, onRename, titleDraft]);
-
-  const handleKeyDown = useCallback(
-    (e) => {
-      const mod = e.ctrlKey || e.metaKey;
-      if (mod && (e.key === 's' || e.key === 'S')) {
-        e.preventDefault();
-        if (actualDoc && onSaveNow) onSaveNow(actualDoc.id, actualDoc.content ?? '');
-      }
-      // Sekme: iki boşluk olarak girsin (roman yazımı için yaygın tercih)
-      if (e.key === 'Tab' && e.target === taRef.current) {
-        e.preventDefault();
-        const ta = taRef.current;
-        const s = ta.selectionStart;
-        const en = ta.selectionEnd;
-        const val = ta.value;
-        const next = `${val.slice(0, s)}  ${val.slice(en)}`;
-        if (actualDoc && onChange) onChange(actualDoc.id, next);
-        requestAnimationFrame(() => {
-          ta.selectionStart = ta.selectionEnd = s + 2;
-        });
-      }
-    },
-    [actualDoc, onChange, onSaveNow]
-  );
 
   if (!actualDoc) {
     return (
@@ -160,17 +127,13 @@ export default function Editor({
         </div>
       </header>
 
-      {/* --- Yazım yüzeyi --- */}
-      <textarea
-        ref={taRef}
+      {/* --- Yazım yüzeyi (doküman başına yeniden kurulur: geri al geçmişi karışmaz) --- */}
+      <RichText
+        key={actualDoc.id}
+        doc={actualDoc}
+        onChange={onChange}
         className="editor__area"
-        value={actualDoc.content ?? ''}
-        placeholder="Boş sayfaya ilk cümleni bırak…"
-        spellCheck="true"
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        aria-label={ariaLabel || `${actualDoc.title} içeriği`}
-        data-testid="editor-textarea"
+        ariaLabel={ariaLabel || `${actualDoc.title} içeriği`}
       />
 
       {/* --- Alt şerit: kelime sayacı + hedef halkası --- */}
