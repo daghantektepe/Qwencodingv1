@@ -303,35 +303,13 @@
 
 /* Buton varyantları (global token'lardan bağımsız mini tanım) */
 
-.btn {
-  border: 1px solid var(--border, #ddd6c8);
-  background: var(--bg-elevated, #ffffff);
-  color: var(--text-primary, #2f2b24);
-  font: inherit;
-  font-size: var(--fs-sm, 0.82rem);
-  font-weight: 600;
-  border-radius: var(--r-sm, 6px);
-  padding: 7px 14px;
-  cursor: pointer;
-  transition: background-color var(--dur-fast, 120ms) var(--ease-out, ease),
-    border-color var(--dur-fast, 120ms) var(--ease-out, ease),
-    box-shadow var(--dur-fast, 120ms) var(--ease-out, ease);
-}
 
-.btn:hover {
-  border-color: var(--border-strong, #c4bba6);
-}
 
-.btn--primary {
-  background: var(--accent, #7a6c4f);
-  border-color: var(--accent, #7a6c4f);
-  color: #ffffff;
-}
 
-.btn--primary:hover {
-  background: var(--accent-hover, #655a42);
-  border-color: var(--accent-hover, #655a42);
-}
+
+
+
+
 
 .btn--sm {
   padding: 6px 11px;

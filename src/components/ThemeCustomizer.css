@@ -200,7 +200,7 @@
 
 .seg-btn.is-active {
   background: var(--accent, #7a6c4f);
-  color: #ffffff;
+  color: var(--text-on-accent);
 }
 
 /* --- Range slider --- */
@@ -267,30 +267,11 @@
   background: var(--bg-panel, #faf9f5);
 }
 
-.btn {
-  border: 1px solid var(--border, #ddd6c8);
-  background: var(--bg-elevated, #ffffff);
-  color: var(--text-primary, #2f2b24);
-  font: inherit;
-  font-size: var(--fs-sm, 0.82rem);
-  font-weight: 600;
-  border-radius: var(--r-sm, 6px);
-  padding: 8px 16px;
-  cursor: pointer;
-  transition: background-color var(--dur-fast, 120ms) var(--ease-out, ease),
-    border-color var(--dur-fast, 120ms) var(--ease-out, ease);
-}
 
-.btn--primary {
-  background: var(--accent, #7a6c4f);
-  border-color: var(--accent, #7a6c4f);
-  color: #ffffff;
-}
 
-.btn--primary:hover {
-  background: var(--accent-hover, #655a42);
-  border-color: var(--accent-hover, #655a42);
-}
+
+
+
 
 /* --- Azaltılmış hareket tercihi --- */
 

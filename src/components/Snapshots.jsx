@@ -89,7 +89,7 @@ function localStorageSnapshotOps(channel, { projectId, docId, timestamp, content
     }
     case 'snapshot-load': {
       const found = readAll().find((s) => s.timestamp === timestamp);
-      return found ? { ok: true, snapshot: found } : { ok: false, error: 'Snapshot bulunamadı.' };
+      return found ? { ok: true, snapshot: found } : { ok: false, error: 'Sürüm bulunamadı.' };
     }
     case 'snapshot-delete': {
       writeAll(readAll().filter((s) => s.timestamp !== timestamp));
@@ -165,7 +165,7 @@ export default function Snapshots({ document = null, projectId = 'default', onRe
         setNoteInput('');
         await refreshList();
       } else {
-        setMessage({ type: 'error', text: res?.error || 'Snapshot alınamadı.' });
+        setMessage({ type: 'error', text: res?.error || 'Sürüm alınamadı.' });
       }
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
@@ -210,7 +210,7 @@ export default function Snapshots({ document = null, projectId = 'default', onRe
         if (res?.ok && res.snapshot) {
           setDiffSnapshot(res.snapshot);
         } else {
-          setMessage({ type: 'error', text: res?.error || 'Snapshot içeriği alınamadı.' });
+          setMessage({ type: 'error', text: res?.error || 'Sürüm içeriği alınamadı.' });
         }
       } catch (err) {
         setMessage({ type: 'error', text: err.message });
@@ -281,15 +281,15 @@ export default function Snapshots({ document = null, projectId = 'default', onRe
   );
 
   return (
-    <aside className="snapshots" aria-label="Snapshots - Geçmiş Versiyonlar">
+    <aside className="snapshots" aria-label="Sürümler">
       <header className="snapshots-header">
-        <h2 className="snapshots-header__title">Anlık Görüntüler</h2>
+        <h2 className="snapshots-header__title">Sürümler</h2>
         {document && <span className="snapshots-header__doc">{document.title}</span>}
       </header>
 
       {!document ? (
         <div className="snapshots-empty">
-          <p>Snapshots görmek için Binder'dan bir doküman seçin.</p>
+          <p>Sürümleri görmek için proje ağacından bir doküman seçin.</p>
         </div>
       ) : (
         <>
@@ -311,7 +311,7 @@ export default function Snapshots({ document = null, projectId = 'default', onRe
               onClick={handleCreate}
               disabled={busy}
             >
-              📸 Snapshot Al
+              Sürüm kaydet
             </button>
           </div>
 
@@ -322,7 +322,7 @@ export default function Snapshots({ document = null, projectId = 'default', onRe
           )}
 
           {/* Liste */}
-          <ul className="snapshots-list" aria-label="Snapshot listesi">
+          <ul className="snapshots-list" aria-label="Sürüm listesi">
             {snapshots.length === 0 && (
               <li className="snapshots-list-empty">Henüz snapshot yok.</li>
             )}

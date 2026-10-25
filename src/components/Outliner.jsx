@@ -150,16 +150,16 @@ export default function Outliner({
 
   if (actualRows.length === 0) {
     return (
-      <section className="outliner" aria-label="Outliner">
+      <section className="outliner" aria-label="Ana hat">
         <div className="outliner__empty">
-          <p>Görüntülenecek satır yok. Binder'dan bir klasör seçin.</p>
+          <p>Görüntülenecek satır yok. Proje ağacından bir klasör seçin.</p>
         </div>
       </section>
     );
   }
 
   return (
-    <section className="outliner" aria-label="Outliner tablosu">
+    <section className="outliner" aria-label="Ana hat tablosu">
       <div className="outliner__scroll">
         <table className="outliner__table">
           <thead>

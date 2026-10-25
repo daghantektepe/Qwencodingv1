@@ -8,8 +8,8 @@ describe('OpenScriv MVP', () => {
     render(<App />);
 
     expect(screen.getByText('OpenScriv')).toBeInTheDocument();
-    expect(screen.getByLabelText('Manuscript editor')).toBeInTheDocument();
-    expect(screen.getByLabelText('Inspector')).toBeInTheDocument();
+    expect(screen.getByLabelText('Metin editörü', { selector: '[role="textbox"]' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Bilgi paneli', { selector: 'aside' })).toBeInTheDocument();
   });
 
   it('updates the active document text and word count', async () => {
@@ -17,12 +17,12 @@ describe('OpenScriv MVP', () => {
 
     // jsdom's simulated typing races ProseMirror's DOM reconciliation under load and drops
     // characters, so drive the TipTap editor through its own API (emits a real update).
-    const surface = screen.getByLabelText('Manuscript editor') as HTMLElement & { editor: any };
+    const surface = screen.getByLabelText('Metin editörü', { selector: '[role="textbox"]' }) as HTMLElement & { editor: any };
     act(() => {
       surface.editor.commands.setContent('<p>One <strong>two</strong> three four</p>', true);
     });
 
-    expect(screen.getByText('4 words')).toBeInTheDocument();
+    expect(screen.getByTestId('word-count')).toHaveTextContent('4 kelime');
   });
 
   it('counts words across the sample project', () => {

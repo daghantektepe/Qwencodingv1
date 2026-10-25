@@ -316,9 +316,9 @@ export default function Binder({
   };
 
   return (
-    <section className="binder" aria-label="Proje Binder">
+    <section className="binder" aria-label="Proje ağacı">
       <header className="binder-header">
-        <h2 className="binder-header__title">Binder</h2>
+        <h2 className="binder-header__title">Proje Ağacı</h2>
         <div className="binder-search-wrap">
           <input
             type="search"
@@ -326,7 +326,7 @@ export default function Binder({
             placeholder="Başlıkta ara…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            aria-label="Binder içinde başlık ara"
+            aria-label="Proje ağacında başlık ara"
           />
         </div>
       </header>

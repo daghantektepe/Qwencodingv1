@@ -90,7 +90,7 @@ export default function Corkboard({
     return (
       <section className="corkboard" aria-label="Mantar pano">
         <div className="corkboard__empty">
-          <p>Görüntülenecek kart yok. Binder'dan bir klasör seçin.</p>
+          <p>Görüntülenecek kart yok. Proje ağacından bir klasör seçin.</p>
         </div>
       </section>
     );

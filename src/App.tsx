@@ -48,8 +48,6 @@ import { countWords } from './utils/count.js';
 import { Palette, StickyNote } from 'lucide-react';
 
 import {
-  FileText,
-  Folder,
   FolderPlus,
   FilePlus,
   Moon,
@@ -59,9 +57,6 @@ import {
   LayoutGrid,
   List,
   Edit3,
-  Camera,
-  Target,
-  Sliders,
   Columns,
   Command,
   Maximize2,
@@ -77,7 +72,6 @@ import {
   Book,
   Users,
   Tablet,
-  Sparkles,
   Wrench,
   X,
 } from 'lucide-react';
@@ -183,6 +177,17 @@ function findFirstDoc(nodes: any[]): any | null {
   return null;
 }
 
+const VIEW_TABS = [
+  { id: 'editor', label: 'Editör', title: 'Metin editörü', icon: Edit3 },
+  { id: 'corkboard', label: 'Pano', title: 'Mantar pano', icon: LayoutGrid },
+  { id: 'outliner', label: 'Ana Hat', title: 'Ana hat (tablo görünümü)', icon: List },
+  { id: 'timeline', label: 'Zaman', title: 'Zaman çizelgesi', icon: Clock },
+  { id: 'codex', label: 'Evren', title: 'Karakterler ve evren', icon: BookOpen },
+  { id: 'map', label: 'Harita', title: 'Etkileşimli harita', icon: Map },
+] as const;
+
+const DARK_THEMES = ['dark', 'midnight-velvet', 'emerald-scholar'];
+
 const PROJECT_ID = 'default';
 const WEB_TREE_KEY = `openscriv:tree:${PROJECT_ID}`;
 
@@ -223,6 +228,7 @@ function flattenDocs(nodes: any[]): { id: string; title: string; content?: strin
 
 export function App() {
   const { theme, setTheme, toggleTheme, typography, setTypography } = useTheme();
+  const isDarkTheme = DARK_THEMES.includes(theme);
 
   // Disk kalıcılığı: ağaç (içerik dahil) debounce ile tree.json'a yazılır.
   const {
@@ -502,14 +508,14 @@ export function App() {
     },
     {
       id: 'view-corkboard',
-      title: 'Mantar Pano (Corkboard) Görünümüne Geç',
+      title: 'Mantar Pano Görünümüne Geç',
       group: 'Görünüm',
       shortcut: 'Alt+2',
       run: () => setViewMode('corkboard'),
     },
     {
       id: 'view-outliner',
-      title: 'Outliner Görünümüne Geç',
+      title: 'Ana Hat Görünümüne Geç',
       group: 'Görünüm',
       shortcut: 'Alt+3',
       run: () => setViewMode('outliner'),
@@ -572,32 +578,32 @@ export function App() {
     },
     {
       id: 'inspector-meta',
-      title: 'Inspector: Doküman Bilgisi ve Özet',
-      group: 'Inspector',
+      title: 'Bilgi Paneli: Doküman Bilgisi ve Özet',
+      group: 'Bilgi Paneli',
       run: () => setInspectorTab('metadata'),
     },
     {
       id: 'inspector-snapshots',
-      title: 'Inspector: Anlık Görüntüler (Snapshots)',
-      group: 'Inspector',
+      title: 'Bilgi Paneli: Sürümler',
+      group: 'Bilgi Paneli',
       run: () => setInspectorTab('snapshots'),
     },
     {
       id: 'inspector-targets',
-      title: 'Inspector: Kelime ve Hedef Takibi',
-      group: 'Inspector',
+      title: 'Bilgi Paneli: Kelime ve Hedef Takibi',
+      group: 'Bilgi Paneli',
       run: () => setInspectorTab('targets'),
     },
     {
       id: 'view-timeline',
-      title: 'Zaman Çizelgesi (Timeline) Görünümüne Geç',
+      title: 'Zaman Çizelgesi Görünümüne Geç',
       group: 'Görünüm',
       shortcut: 'Alt+4',
       run: () => setViewMode('timeline'),
     },
     {
       id: 'view-codex',
-      title: 'Codex / Karakter & Dünya Tasarımına Geç',
+      title: 'Karakterler ve Evren Görünümüne Geç',
       group: 'Görünüm',
       shortcut: 'Alt+5',
       run: () => setViewMode('codex'),
@@ -611,56 +617,56 @@ export function App() {
     },
     {
       id: 'open-health-audit',
-      title: 'Proje Sağlık ve Kalite Denetimi HUD (Faz 89)',
+      title: 'Proje Sağlık ve Kalite Denetimi HUD',
       group: 'Stüdyo Araçları',
       shortcut: 'Ctrl+Shift+H',
       run: () => setHealthDashboardOpen(true),
     },
     {
       id: 'open-batch-export',
-      title: 'Toplu Çoklu Format Dağıtım Kiti (Faz 97)',
+      title: 'Toplu Çoklu Format Dağıtım Kiti',
       group: 'Dışa Aktar',
       run: () => setBatchExportOpen(true),
     },
     {
       id: 'open-backup-history',
-      title: 'Yedekleme Geçmişi ve Çoklu Hedef Yedekleyici (Faz 93)',
+      title: 'Yedekleme Geçmişi ve Çoklu Hedef Yedekleyici',
       group: 'Stüdyo Araçları',
       run: () => setBackupManagerOpen(true),
     },
     {
       id: 'open-night-filter',
-      title: 'Gece / Amber / OLED Siyah Filtre Ayarları (Faz 90)',
+      title: 'Gece / Amber / OLED Siyah Filtre Ayarları',
       group: 'Arayüz',
       run: () => setNightFilterOpen(true),
     },
     {
       id: 'open-snippets',
-      title: 'Metin Genişletici & Makro Şablonlar (Faz 91)',
+      title: 'Metin Genişletici & Makro Şablonlar',
       group: 'Yazım Araçları',
       run: () => setSnippetsOpen(true),
     },
     {
       id: 'open-dictionary',
-      title: 'Çevrimdışı Sözlük ve Etimoloji Arama (Faz 94)',
+      title: 'Çevrimdışı Sözlük ve Etimoloji Arama',
       group: 'Yazım Araçları',
       run: () => setDictionaryOpen(true),
     },
     {
       id: 'open-beta-feedback',
-      title: 'Beta Okur Geri Bildirim Masası (Faz 88)',
+      title: 'Beta Okur Geri Bildirim Masası',
       group: 'Yazım Araçları',
       run: () => setBetaFeedbackOpen(true),
     },
     {
       id: 'toggle-touch-mode',
-      title: 'Tablet / Dokunmatik Modunu Aç / Kapat (Faz 98)',
+      title: 'Tablet / Dokunmatik Modunu Aç / Kapat',
       group: 'Arayüz',
       run: () => toggleTouchMode(),
     },
     {
       id: 'open-studio-tools',
-      title: 'Tüm Stüdyo Modüllerini Listele (Faz 88-100)',
+      title: 'Tüm Stüdyo Modüllerini Listele',
       group: 'Stüdyo Araçları',
       run: () => setToolsDrawerOpen(true),
     },
@@ -717,51 +723,50 @@ export function App() {
         projectName={project.name || 'OpenScriv Projesi'}
         activeDocTitle={activeDoc?.title}
       />
-      <div className={`app ${theme === 'dark' ? 'dark' : ''}`} style={{ flex: 1, height: 'calc(100vh - 38px)' }}>
-        {/* Sol Panel: Binder (Proje Ağacı) */}
-      <aside className="sidebar" aria-label="Binder">
+      <div className="app" style={{ flex: 1, height: 'calc(100vh - 38px)' }}>
+        {/* Sol Panel: Proje Ağacı */}
+      <aside className="sidebar" aria-label="Proje ağacı">
         <div className="brand">
           <div>
             <strong>OpenScriv</strong>
             <span>{project.name || 'OpenScriv Projesi'}</span>
           </div>
-          <div style={{ display: 'flex', gap: '4px' }}>
+          <div className="toolbar__group">
             <button
-              className="icon-button"
+              className="btn btn--ghost btn--icon"
               type="button"
-              aria-label="Theme settings"
-              title="Lüks Tema & Tipografi Ayarları"
+              aria-label="Tema ve yazı tipi ayarları"
+              title="Tema ve yazı tipi ayarları"
               onClick={() => setThemeCustomizerOpen(true)}
             >
-              <Palette size={17} />
+              <Palette size={16} />
             </button>
             <button
-              className="icon-button"
+              className="btn btn--ghost btn--icon"
               type="button"
-              aria-label="Toggle theme"
-              title="Temayı Değiştir"
+              aria-label={isDarkTheme ? 'Açık temaya geç' : 'Koyu temaya geç'}
+              title={isDarkTheme ? 'Açık temaya geç' : 'Koyu temaya geç'}
               onClick={toggleTheme}
             >
-              {theme === 'dark' || theme === 'midnight-velvet' || theme === 'emerald-scholar' ? <Sun size={17} /> : <Moon size={17} />}
+              {isDarkTheme ? <Sun size={16} /> : <Moon size={16} />}
             </button>
           </div>
         </div>
 
         {/* Hızlı Butonlar */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+        <div className="sidebar__actions">
           <button
             type="button"
-            className="icon-button"
-            title="Yeni Doküman Ekle"
+            className="btn"
+            title="Yeni doküman ekle"
             onClick={() => addDoc('Yeni Bölüm', activeFolder?.id, undefined)}
-            style={{ width: 'auto', flex: 1, padding: '0 8px', fontSize: '12px', gap: '4px' }}
           >
-            <FilePlus size={15} /> + Doküman
+            <FilePlus size={15} /> Doküman
           </button>
           <button
             type="button"
-            className="icon-button"
-            title="Yeni Klasör Ekle"
+            className="btn"
+            title="Yeni klasör ekle"
             onClick={() => {
               const fNode = {
                 id: `folder-${Date.now()}`,
@@ -772,26 +777,17 @@ export function App() {
               };
               setProject((p: any) => ({ ...p, tree: [...p.tree, fNode] }));
             }}
-            style={{ width: 'auto', flex: 1, padding: '0 8px', fontSize: '12px', gap: '4px' }}
           >
-            <FolderPlus size={15} /> + Klasör
+            <FolderPlus size={15} /> Klasör
           </button>
         </div>
 
-        {/* Arama Butonu */}
-        <input
-          type="text"
-          readOnly
-          className="search-box"
-          style={{ cursor: 'pointer', marginBottom: '12px' }}
-          onClick={() => setSearchOpen(true)}
-          role="button"
-          tabIndex={0}
-          aria-label="Arama Yap"
-          value="Projeyi Ara (Ctrl+K)..."
-        />
+        {/* Arama */}
+        <button type="button" className="search-box" aria-label="Projede ara" onClick={() => setSearchOpen(true)}>
+          <SearchIcon size={14} /> Projede ara <kbd>Ctrl+K</kbd>
+        </button>
 
-        {/* Binder Ağacı */}
+        {/* Proje Ağacı */}
         <Binder
           tree={tree}
           selectedId={selectedId as any}
@@ -800,131 +796,93 @@ export function App() {
       </aside>
 
       {/* Orta Panel: Editör / Corkboard / Outliner */}
-      <main className="editor-shell" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-        {/* Üst Navigasyon & Görünüm Değiştirici */}
-        <header className="toolbar" style={{ borderBottom: '1px solid var(--border, #d9d4c8)', padding: '8px 16px', background: 'var(--bg-header, #efece4)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto' }}>
-            <button
-              type="button"
-              className={`icon-button ${viewMode === 'editor' ? 'active' : ''}`}
-              title="Metin Editörü"
-              onClick={() => setViewMode('editor')}
-              style={{ width: 'auto', padding: '0 12px', fontSize: '13px', gap: '6px', background: viewMode === 'editor' ? 'var(--bg-selected, #dfd8c6)' : undefined }}
-            >
-              <Edit3 size={15} /> Editör
-            </button>
-            <button
-              type="button"
-              className={`icon-button ${viewMode === 'corkboard' ? 'active' : ''}`}
-              title="Mantar Pano (Corkboard)"
-              onClick={() => setViewMode('corkboard')}
-              style={{ width: 'auto', padding: '0 12px', fontSize: '13px', gap: '6px', background: viewMode === 'corkboard' ? 'var(--bg-selected, #dfd8c6)' : undefined }}
-            >
-              <LayoutGrid size={15} /> Mantar Pano
-            </button>
-            <button
-              type="button"
-              className={`icon-button ${viewMode === 'outliner' ? 'active' : ''}`}
-              title="Tablo Görünümü (Outliner)"
-              onClick={() => setViewMode('outliner')}
-              style={{ width: 'auto', padding: '0 12px', fontSize: '13px', gap: '6px', background: viewMode === 'outliner' ? 'var(--bg-selected, #dfd8c6)' : undefined }}
-            >
-              <List size={15} /> Outliner
-            </button>
-            <button
-              type="button"
-              className={`icon-button ${viewMode === 'timeline' ? 'active' : ''}`}
-              title="Zaman Çizelgesi (Timeline)"
-              onClick={() => setViewMode('timeline')}
-              style={{ width: 'auto', padding: '0 10px', fontSize: '13px', gap: '6px', background: viewMode === 'timeline' ? 'var(--bg-selected, #dfd8c6)' : undefined }}
-            >
-              <Clock size={15} /> Timeline
-            </button>
-            <button
-              type="button"
-              className={`icon-button ${viewMode === 'codex' ? 'active' : ''}`}
-              title="Karakterler & Evren (Codex)"
-              onClick={() => setViewMode('codex')}
-              style={{ width: 'auto', padding: '0 10px', fontSize: '13px', gap: '6px', background: viewMode === 'codex' ? 'var(--bg-selected, #dfd8c6)' : undefined }}
-            >
-              <BookOpen size={15} /> Codex
-            </button>
-            <button
-              type="button"
-              className={`icon-button ${viewMode === 'map' ? 'active' : ''}`}
-              title="İnteraktif Harita (World Map)"
-              onClick={() => setViewMode('map')}
-              style={{ width: 'auto', padding: '0 10px', fontSize: '13px', gap: '6px', background: viewMode === 'map' ? 'var(--bg-selected, #dfd8c6)' : undefined }}
-            >
-              <Map size={15} /> Harita
-            </button>
-          </div>
+      <main className="editor-shell">
+        {/* Üst araç çubuğu: görünüm seçici + eylemler */}
+        <header className="toolbar">
+          <nav className="segmented" aria-label="Görünüm">
+            {VIEW_TABS.map(({ id, label, title, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                className={`btn${viewMode === id ? ' is-active' : ''}`}
+                title={title}
+                aria-label={title}
+                aria-pressed={viewMode === id}
+                onClick={() => setViewMode(id)}
+              >
+                <Icon size={15} />
+                <span className="btn__label">{label}</span>
+              </button>
+            ))}
+          </nav>
 
-          <div className="toolbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="toolbar__group">
             <button
               type="button"
-              className="icon-button"
-              title="Stüdyo Modülleri & Araçlar (Faz 88-100)"
+              className="btn btn--ghost btn--icon"
+              title="Stüdyo araçları"
+              aria-label="Stüdyo araçları"
               onClick={() => setToolsDrawerOpen(true)}
-              style={{ width: 'auto', padding: '0 10px', fontSize: '13px', gap: '6px', background: 'var(--accent-soft, rgba(122, 108, 79, 0.15))', color: 'var(--accent, #7a6c4f)', fontWeight: 600 }}
             >
-              <Wrench size={14} /> Araçlar
+              <Wrench size={16} />
             </button>
             <button
               type="button"
-              className="icon-button"
-              title="Komut Paleti (Ctrl+Shift+P / F1)"
+              className="btn btn--ghost btn--icon"
+              title="Komut paleti (Ctrl+Shift+P)"
+              aria-label="Komut paleti"
               onClick={() => setPaletteOpen(true)}
-              style={{ width: 'auto', padding: '0 10px', fontSize: '13px', gap: '6px' }}
             >
-              <Command size={14} /> Komutlar
+              <Command size={16} />
             </button>
+            <span className="toolbar__divider" aria-hidden="true" />
             <button
               type="button"
-              className={`icon-button ${soundEnabled ? 'active' : ''}`}
-              title={soundEnabled ? 'Daktilo Tuş Seslerini Kapat (Alt+S)' : 'Daktilo Tuş Seslerini Aç (Alt+S / Mekanik Vuruş)'}
+              className="btn btn--ghost btn--icon"
+              title={soundEnabled ? 'Daktilo seslerini kapat' : 'Daktilo seslerini aç'}
+              aria-label="Daktilo sesleri"
+              aria-pressed={soundEnabled}
               onClick={handleToggleSound}
-              style={{ width: 'auto', padding: '0 10px', fontSize: '13px', gap: '6px', background: soundEnabled ? 'var(--bg-selected, #dfd8c6)' : undefined }}
             >
-              {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />} {soundEnabled ? 'Ses Açık' : 'Ses'}
+              {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
             </button>
             <button
               type="button"
-              className={`icon-button ${scratchpadOpen ? 'active' : ''}`}
-              title="Hızlı Not Defteri (Ctrl+Shift+N / Yüzen Scratchpad)"
+              className="btn btn--ghost btn--icon"
+              title="Not defteri (Ctrl+Shift+N)"
+              aria-label="Not defteri"
+              aria-pressed={scratchpadOpen}
               onClick={() => setScratchpadOpen((prev) => !prev)}
-              style={{ width: 'auto', padding: '0 10px', fontSize: '13px', gap: '6px', background: scratchpadOpen ? 'var(--bg-selected, #dfd8c6)' : undefined }}
             >
-              <StickyNote size={14} /> Notlar
+              <StickyNote size={16} />
             </button>
             <button
               type="button"
-              className={`icon-button ${focusModeOpen ? 'active' : ''}`}
-              title="Odak Modu (F11 / Zen & Daktilo Kaydırma)"
-              onClick={() => setFocusModeOpen(true)}
-              style={{ width: 'auto', padding: '0 10px', fontSize: '13px', gap: '6px' }}
-            >
-              <Maximize2 size={14} /> Odak
-            </button>
-            <button
-              type="button"
-              className={`icon-button ${splitMode !== 'off' ? 'active' : ''}`}
-              title={splitMode === 'off' ? 'Bölünmüş Ekranı Aç (Çift Panel)' : 'Tek Panel Görünümüne Dön'}
+              className="btn btn--ghost btn--icon"
+              title={splitMode === 'off' ? 'Ekranı ikiye böl' : 'Tek panele dön'}
+              aria-label="Bölünmüş ekran"
+              aria-pressed={splitMode !== 'off'}
               onClick={() => setSplitMode((prev) => (prev === 'off' ? 'vertical' : 'off'))}
-              style={{ width: 'auto', padding: '0 10px', fontSize: '13px', gap: '6px', background: splitMode !== 'off' ? 'var(--bg-selected, #dfd8c6)' : undefined }}
             >
-              <Columns size={15} /> {splitMode !== 'off' ? 'Tek Panel' : 'Böl'}
+              <Columns size={16} />
             </button>
-            <span style={{ fontSize: '13px', fontWeight: 600 }}>{activeWords} words</span>
             <button
               type="button"
-              className="icon-button"
-              title="Projeyi Derle ve Dışa Aktar"
-              aria-label="Toggle Compile Window"
-              onClick={() => setCompileOpen(true)}
-              style={{ width: 'auto', padding: '0 10px', fontSize: '13px', gap: '6px', color: 'var(--accent, #7a6c4f)' }}
+              className="btn btn--ghost btn--icon"
+              title="Odak modu (F11)"
+              aria-label="Odak modu"
+              onClick={() => setFocusModeOpen(true)}
             >
-              <Download size={15} /> Derle
+              <Maximize2 size={16} />
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary"
+              title="Projeyi derle ve dışa aktar"
+              onClick={() => setCompileOpen(true)}
+            >
+              <Download size={15} />
+              <span className="btn__label">Derle</span>
             </button>
           </div>
         </header>
@@ -948,7 +906,7 @@ export function App() {
                   onRename={renameNode}
                   saveState={saveState}
                   lastSavedAt={lastSavedAt}
-                  ariaLabel="Manuscript editor"
+                  ariaLabel="Metin editörü"
                 />
               )}
 
@@ -1004,7 +962,7 @@ export function App() {
                       onRename={renameNode}
                       saveState={saveState}
                       lastSavedAt={lastSavedAt}
-                      ariaLabel="Manuscript editor"
+                      ariaLabel="Metin editörü"
                     />
                   )}
                   {viewMode === 'corkboard' && (
@@ -1042,7 +1000,7 @@ export function App() {
                       document={findNodeInTree(tree, secondaryDocId) || activeDoc}
                       onChange={handleContentChange}
                       onRename={renameNode}
-                      ariaLabel="Secondary editor"
+                      ariaLabel="İkincil editör"
                     />
                   </div>
                 </div>
@@ -1064,38 +1022,37 @@ export function App() {
         />
       </main>
 
-      {/* Sağ Panel: Inspector (Metadata, Snapshots, Hedefler) */}
-      <aside className="inspector" aria-label="Inspector" style={{ display: 'flex', flexDirection: 'column' }}>
-        {/* Inspector Sekme Butonları */}
-        <div style={{ display: 'flex', gap: '4px', marginBottom: '12px', borderBottom: '1px solid var(--border, #d9d4c8)', paddingBottom: '8px' }}>
+      {/* Sağ Panel: Bilgi Paneli (Bilgi, Sürümler, Hedef) */}
+      <aside className="inspector" aria-label="Bilgi paneli">
+        <nav className="segmented segmented--fill" aria-label="Bilgi paneli sekmeleri">
           <button
             type="button"
-            className="icon-button"
+            className={`btn${inspectorTab === 'metadata' ? ' is-active' : ''}`}
+            aria-pressed={inspectorTab === 'metadata'}
             onClick={() => setInspectorTab('metadata')}
-            title="Metadata ve Notlar"
-            style={{ flex: 1, fontSize: '12px', background: inspectorTab === 'metadata' ? 'var(--bg-selected, #dfd8c6)' : undefined }}
+            title="Doküman bilgisi ve özet"
           >
-            <Sliders size={14} /> Bilgi
+            Bilgi
           </button>
           <button
             type="button"
-            className="icon-button"
+            className={`btn${inspectorTab === 'snapshots' ? ' is-active' : ''}`}
+            aria-pressed={inspectorTab === 'snapshots'}
             onClick={() => setInspectorTab('snapshots')}
-            title="Anlık Görüntüler (Snapshots)"
-            style={{ flex: 1, fontSize: '12px', background: inspectorTab === 'snapshots' ? 'var(--bg-selected, #dfd8c6)' : undefined }}
+            title="Sürümler (anlık görüntüler)"
           >
-            <Camera size={14} /> Sürüm
+            Sürümler
           </button>
           <button
             type="button"
-            className="icon-button"
+            className={`btn${inspectorTab === 'targets' ? ' is-active' : ''}`}
+            aria-pressed={inspectorTab === 'targets'}
             onClick={() => setInspectorTab('targets')}
-            title="Kelime ve Hedef Takibi"
-            style={{ flex: 1, fontSize: '12px', background: inspectorTab === 'targets' ? 'var(--bg-selected, #dfd8c6)' : undefined }}
+            title="Kelime ve hedef takibi"
           >
-            <Target size={14} /> Hedef
+            Hedef
           </button>
-        </div>
+        </nav>
 
         <div style={{ flex: 1, overflow: 'auto' }}>
           {inspectorTab === 'metadata' && (
@@ -1213,7 +1170,7 @@ export function App() {
                   <Activity size={18} /> Sağlık Denetimi
                 </div>
                 <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary, #6b6455)' }}>
-                  Edilgen çatı, tempo dalgalanmaları, aşırı sıfat ve kopukluk denetimi (Faz 89).
+                  Edilgen çatı, tempo dalgalanmaları, aşırı sıfat ve kopukluk denetimi.
                 </p>
               </div>
 
@@ -1225,7 +1182,7 @@ export function App() {
                   <PackageCheck size={18} /> Toplu Dağıtım Kiti
                 </div>
                 <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary, #6b6455)' }}>
-                  EPUB 3, PDF, DOCX, Markdown formatlarında tek tıkla toplu yayın arşivi (Faz 97).
+                  EPUB 3, PDF, DOCX, Markdown formatlarında tek tıkla toplu yayın arşivi.
                 </p>
               </div>
 
@@ -1237,7 +1194,7 @@ export function App() {
                   <ShieldCheck size={18} /> Yedekleme Geçmişi
                 </div>
                 <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary, #6b6455)' }}>
-                  Çoklu hedefe anlık şifreli proje yedekleme ve kurtarma yöneticisi (Faz 93).
+                  Çoklu hedefe anlık şifreli proje yedekleme ve kurtarma yöneticisi.
                 </p>
               </div>
 
@@ -1249,7 +1206,7 @@ export function App() {
                   <Moon size={18} /> Gece & OLED Filtresi
                 </div>
                 <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary, #6b6455)' }}>
-                  Sirkadiyen amber, %100 saf OLED siyah ve mavi ışık filtreleri (Faz 90).
+                  Sirkadiyen amber, %100 saf OLED siyah ve mavi ışık filtreleri.
                 </p>
               </div>
 
@@ -1261,7 +1218,7 @@ export function App() {
                   <Zap size={18} /> Metin Genişletici
                 </div>
                 <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary, #6b6455)' }}>
-                  Klavye makro kısayolları ve dinamik değişken genişleticiler (Faz 91).
+                  Klavye makro kısayolları ve dinamik değişken genişleticiler.
                 </p>
               </div>
 
@@ -1273,7 +1230,7 @@ export function App() {
                   <Book size={18} /> Çevrimdışı Sözlük
                 </div>
                 <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary, #6b6455)' }}>
-                  Türkçe/İngilizce eşanlamlılar, zıt anlamlılar ve kelime kökenleri (Faz 94).
+                  Türkçe/İngilizce eşanlamlılar, zıt anlamlılar ve kelime kökenleri.
                 </p>
               </div>
 
@@ -1285,7 +1242,7 @@ export function App() {
                   <Users size={18} /> Beta Okur Masası
                 </div>
                 <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary, #6b6455)' }}>
-                  Okur notları içe aktarma, split-diff ve satır içi onay/ret sistemi (Faz 88).
+                  Okur notları içe aktarma, split-diff ve satır içi onay/ret sistemi.
                 </p>
               </div>
 
@@ -1297,7 +1254,7 @@ export function App() {
                   <Tablet size={18} /> Tablet & Dokunmatik Modu
                 </div>
                 <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary, #6b6455)' }}>
-                  Geniş butonlar ve dokunmatik ekran optimizasyonu ({touchModeEnabled ? 'Şu an Aktif' : 'Şu an Pasif'}) (Faz 98).
+                  Geniş butonlar ve dokunmatik ekran optimizasyonu ({touchModeEnabled ? 'Şu an Aktif' : 'Şu an Pasif'}).
                 </p>
               </div>
             </div>
@@ -1376,7 +1333,7 @@ export function App() {
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
           <div style={{ background: 'var(--bg-panel, #faf9f5)', width: '100%', maxWidth: '960px', maxHeight: '90vh', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: 'var(--shadow-xl)', position: 'relative' }}>
             <div style={{ padding: '12px 16px', background: 'var(--bg-header, #ece8dd)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 600 }}>Beta Okur Geri Bildirim Masası (Faz 88)</span>
+              <span style={{ fontWeight: 600 }}>Beta Okur Geri Bildirim Masası</span>
               <button className="icon-button" style={{ width: '28px', height: '28px' }} onClick={() => setBetaFeedbackOpen(false)}>✕</button>
             </div>
             <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>

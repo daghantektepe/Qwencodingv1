@@ -78,11 +78,11 @@
   background: currentColor;
 }
 
-.editor__save--dirty { color: #b07d2b; }
-.editor__save--saving { color: #4c6e91; }
+.editor__save--dirty { color: var(--warning); }
+.editor__save--saving { color: var(--accent); }
 .editor__save--saving .editor__save-dot { animation: ed-pulse 900ms infinite; }
-.editor__save--saved { color: #2e6b3e; }
-.editor__save--error { color: #9c3a3a; font-weight: 700; }
+.editor__save--saved { color: var(--success); }
+.editor__save--error { color: var(--danger); font-weight: 700; }
 
 @keyframes ed-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }

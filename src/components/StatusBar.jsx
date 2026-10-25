@@ -133,7 +133,7 @@ export default function StatusBar({
           </>
         ) : (
           <span className="session-label session-label--empty">
-            Hedef yok — Inspector’dan kelime hedefi belirle
+            Hedef yok — Bilgi panelinden kelime hedefi belirle
           </span>
         )}
       </div>

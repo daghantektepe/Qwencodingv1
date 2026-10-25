@@ -1,12 +1,16 @@
 /* ==========================================================================
-   OpenScriv — Global stil temeli (Faz 26)
-   Tasarım token'ları, reset, tipografi ölçeği ve tema kök değişkenleri.
-   Tema motoru (src/theme/themes.ts) bu değişkenleri runtime'da ezer.
+   OpenScriv — Tasarım token'ları (tek kaynak), reset ve tipografi ölçeği.
+
+   Renkler iki katmandır:
+   1) Temel renkler: her tema (src/theme.js THEMES) bunları <html> üzerine yazar.
+      Buradaki değerler varsayılan temadır (Oxford Sepia).
+   2) Türetilmiş renkler: temel renklerden color-mix ile hesaplanır, böylece her
+      tema (açık ya da koyu) eksiksiz ve tutarlı bir set alır. Bileşenler sabit
+      hex renk yerine yalnızca bu token'ları kullanmalıdır.
    ========================================================================== */
 
 :root {
-  /* --- Renk token'ları (varsayılan: Oxford Sepia) ---
-     themes.ts applyThemeToDocument() bunları documentElement.style ile değiştirir. */
+  /* --- 1) Temel renkler (tema başına) --- */
   --bg-app: #f4f2ed;
   --bg-panel: #faf9f5;
   --bg-elevated: #ffffff;
@@ -17,21 +21,32 @@
   --text-primary: #2f2b24;
   --text-secondary: #6b6455;
   --text-muted: #948b78;
+  --text-on-accent: #ffffff;
 
   --border: #ddd6c8;
   --border-strong: #c4bba6;
-  --border-focus: #8a7f66;
 
   --accent: #7a6c4f;
   --accent-hover: #655a42;
-  --accent-soft: rgba(122, 108, 79, 0.12);
 
   --success: #2e6b3e;
-  --success-soft: #e5f3e8;
   --warning: #c98a2d;
-  --warning-soft: #f7ecc8;
   --danger: #9c3a3a;
-  --danger-soft: #fbeaea;
+
+  /* --- 2) Türetilmiş renkler (temaya otomatik uyar) --- */
+  --bg-editor: color-mix(in srgb, var(--bg-elevated) 75%, var(--bg-panel));
+  --bg-card: var(--bg-elevated);
+  --text-faint: color-mix(in srgb, var(--text-muted) 60%, var(--bg-panel));
+  --border-light: color-mix(in srgb, var(--border) 55%, transparent);
+  --border-focus: var(--accent);
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+  --success-soft: color-mix(in srgb, var(--success) 14%, transparent);
+  --warning-soft: color-mix(in srgb, var(--warning) 16%, transparent);
+  --danger-soft: color-mix(in srgb, var(--danger) 14%, transparent);
+
+  /* Eski adlar (bazı bileşenler kullanıyor) */
+  --text: var(--text-primary);
+  --font-sans: var(--font-ui);
 
   --shadow-color: 31, 26, 16;
 
@@ -62,11 +77,16 @@
   --sp-4: 16px;
   --sp-5: 24px;
   --sp-6: 32px;
+  --sp-7: 48px;
 
   --r-sm: 6px;
   --r-md: 10px;
   --r-lg: 14px;
+  --r-xl: 20px;
   --r-pill: 999px;
+
+  /* --- Kontrol boyutları --- */
+  --control-h: 30px;
 
   /* --- Hareket --- */
   --dur-fast: 120ms;

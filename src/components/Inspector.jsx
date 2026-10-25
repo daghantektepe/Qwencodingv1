@@ -56,7 +56,7 @@ export default function Inspector({
   doc: docProp = undefined,
   onUpdateMetadata = (..._args) => {},
   onUpdateDoc = (..._args) => {},
-  ariaLabel = 'Inspector',
+  ariaLabel = 'Bilgi paneli',
   statuses = DEFAULT_STATUSES,
 }) {
   const [tab, setTab] = useState('meta'); // meta | labels | notes
@@ -191,7 +191,7 @@ export default function Inspector({
             </section>
 
             <section className="inspector__section">
-              <h3 className="inspector__section-title">Synopsis</h3>
+              <h3 className="inspector__section-title">Özet</h3>
               <textarea
                 className="inspector__textarea"
                 rows={4}

@@ -69,7 +69,7 @@
 
 .snapshot-restore-btn:hover {
   background: var(--accent, #7a6c4f);
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .snapshot-delete-btn:hover {

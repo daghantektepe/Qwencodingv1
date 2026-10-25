@@ -209,38 +209,19 @@
   gap: 4px;
 }
 
-.btn {
+/* Not kağıdı üzerindeki küçük düğme: kağıt her temada açık renkli kalır.
+   (.btn ve .btn--primary ortak tanımı styles.css'te.) */
+.sticky .btn--tiny {
+  height: auto;
   border: 1px solid rgba(60, 51, 36, 0.25);
   background: rgba(255, 255, 255, 0.55);
   color: #3c3324;
-  font: inherit;
-  border-radius: var(--r-sm, 6px);
-  cursor: pointer;
-  transition: background-color var(--dur-fast, 120ms) var(--ease-out, ease);
-}
-
-.btn--primary {
-  background: var(--accent, #7a6c4f);
-  border-color: var(--accent, #7a6c4f);
-  color: #fff;
-  font-size: var(--fs-sm, 0.82rem);
-  font-weight: 600;
-  padding: 5px 12px;
-  white-space: nowrap;
-}
-
-.btn--primary:hover {
-  background: var(--accent-hover, #655a42);
-}
-
-.btn--tiny {
   font-size: 10.5px;
   font-weight: 700;
   padding: 3px 8px;
-  white-space: nowrap;
 }
 
-.btn--tiny:disabled {
+.sticky .btn--tiny:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }

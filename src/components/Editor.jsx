@@ -43,7 +43,7 @@ export default function Editor({
   wordTarget = 0,
   saveState = 'idle',
   lastSavedAt = null,
-  ariaLabel = 'Manuscript editor',
+  ariaLabel = 'Metin editörü',
 }) {
   const actualDoc = doc || document;
   const [titleDraft, setTitleDraft] = useState(actualDoc?.title ?? '');

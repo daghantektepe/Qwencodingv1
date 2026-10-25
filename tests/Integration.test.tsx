@@ -9,27 +9,27 @@ describe('OpenScriv Full Ecosystem Integration', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    // Initially in Editor view
-    expect(screen.getByLabelText('Manuscript editor')).toBeInTheDocument();
+    // Initially in Editor view (the toolbar button shares the name, so target the text surface)
+    expect(screen.getByLabelText('Metin editörü', { selector: '[role="textbox"]' })).toBeInTheDocument();
 
     // Switch to Corkboard view
-    const corkboardBtn = screen.getByTitle('Mantar Pano (Corkboard)');
+    const corkboardBtn = screen.getByTitle('Mantar pano');
     await user.click(corkboardBtn);
 
-    expect(screen.getByText(/Mantar Pano/i)).toBeInTheDocument();
-    expect(screen.queryByLabelText('Manuscript editor')).not.toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Mantar pano kartları' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Metin editörü', { selector: '[role="textbox"]' })).not.toBeInTheDocument();
 
     // Switch to Outliner view
-    const outlinerBtn = screen.getByTitle('Tablo Görünümü (Outliner)');
+    const outlinerBtn = screen.getByTitle('Ana hat (tablo görünümü)');
     await user.click(outlinerBtn);
 
     expect(screen.getByRole('table')).toBeInTheDocument();
 
     // Switch back to Editor view
-    const editorBtn = screen.getByTitle('Metin Editörü');
+    const editorBtn = screen.getByTitle('Metin editörü');
     await user.click(editorBtn);
 
-    expect(screen.getByLabelText('Manuscript editor')).toBeInTheDocument();
+    expect(screen.getByLabelText('Metin editörü', { selector: '[role="textbox"]' })).toBeInTheDocument();
   });
 
   it('switches Inspector tabs between Metadata, Snapshots, and Targets', async () => {
@@ -37,18 +37,18 @@ describe('OpenScriv Full Ecosystem Integration', () => {
     render(<App />);
 
     // Initially in Metadata tab
-    expect(screen.getByLabelText('Inspector')).toBeInTheDocument();
-    expect(screen.getByText('Synopsis')).toBeInTheDocument();
+    expect(screen.getByLabelText('Bilgi paneli', { selector: 'aside' })).toBeInTheDocument();
+    expect(screen.getByText('Özet')).toBeInTheDocument();
 
     // Switch to Snapshots tab
-    const snapshotsTabBtn = screen.getByTitle('Anlık Görüntüler (Snapshots)');
+    const snapshotsTabBtn = screen.getByTitle('Sürümler (anlık görüntüler)');
     await user.click(snapshotsTabBtn);
 
-    expect(screen.getByText('Anlık Görüntüler')).toBeInTheDocument();
-    expect(screen.getByText('📸 Snapshot Al')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Sürümler' })).toBeInTheDocument();
+    expect(screen.getByText('Sürüm kaydet')).toBeInTheDocument();
 
     // Switch to Targets / WordCount tab
-    const targetsTabBtn = screen.getByTitle('Kelime ve Hedef Takibi');
+    const targetsTabBtn = screen.getByTitle('Kelime ve hedef takibi');
     await user.click(targetsTabBtn);
 
     expect(screen.getByText('Kelime Sayacı')).toBeInTheDocument();
@@ -59,7 +59,7 @@ describe('OpenScriv Full Ecosystem Integration', () => {
     render(<App />);
 
     // Click search box
-    const searchTrigger = screen.getByRole('button', { name: 'Arama Yap' });
+    const searchTrigger = screen.getByRole('button', { name: 'Projede ara' });
     await user.click(searchTrigger);
 
     // Search panel opens with role="search"
@@ -85,7 +85,7 @@ describe('OpenScriv Full Ecosystem Integration', () => {
     render(<App />);
 
     // Click Compile button in toolbar
-    const compileBtn = screen.getByTitle('Projeyi Derle ve Dışa Aktar');
+    const compileBtn = screen.getByTitle('Projeyi derle ve dışa aktar');
     await user.click(compileBtn);
 
     // Compile modal opens
