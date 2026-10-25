@@ -124,19 +124,21 @@ export default function Snapshots({ document = null, projectId = 'default', onRe
   const [diffSnapshot, setDiffSnapshot] = useState(null); // diff modalı için seçilen snapshot
 
   // Doküman değişince listeyi yenile
+  // Yalnızca doküman kimliğine bağlı: her tuş vuruşunda liste yeniden çekilmez.
+  const docId = document?.id;
   const refreshList = useCallback(async () => {
-    if (!document) {
+    if (!docId) {
       setSnapshots([]);
       return;
     }
     try {
-      const res = await callIpc('snapshot-list', { projectId, docId: document.id });
+      const res = await callIpc('snapshot-list', { projectId, docId });
       if (res?.ok) setSnapshots(res.snapshots || []);
       else setMessage({ type: 'error', text: res?.error || 'Liste alınamadı.' });
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
     }
-  }, [document, projectId]);
+  }, [docId, projectId]);
 
   useEffect(() => {
     setPreview(null);

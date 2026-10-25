@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 // @ts-ignore
 import Binder from './components/Binder.jsx';
 // @ts-ignore
@@ -183,6 +183,31 @@ function findFirstDoc(nodes: any[]): any | null {
   return null;
 }
 
+const PROJECT_ID = 'default';
+const WEB_TREE_KEY = `openscriv:tree:${PROJECT_ID}`;
+
+// Masaüstünde preload köprüsü; tarayıcıda (vite dev) localStorage.
+function desktopBridge(): any {
+  return (window as any).electronAPI;
+}
+
+function readWebTree(): any[] | null {
+  if (desktopBridge()?.loadProjectTree) return null;
+  try {
+    const tree = JSON.parse(window.localStorage.getItem(WEB_TREE_KEY) || 'null');
+    return Array.isArray(tree) && tree.length ? tree : null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveTree(tree: any[]) {
+  const api = desktopBridge();
+  if (api?.saveProjectTree) return api.saveProjectTree({ projectId: PROJECT_ID, tree });
+  window.localStorage.setItem(WEB_TREE_KEY, JSON.stringify(tree));
+  return { ok: true };
+}
+
 function flattenDocs(nodes: any[]): { id: string; title: string; content?: string }[] {
   const result: { id: string; title: string; content?: string }[] = [];
   for (const n of nodes || []) {
@@ -199,14 +224,25 @@ function flattenDocs(nodes: any[]): { id: string; title: string; content?: strin
 export function App() {
   const { theme, setTheme, toggleTheme, typography, setTypography } = useTheme();
 
-  // Disk kalıcılığı callback'i
+  // Disk kalıcılığı: ağaç (içerik dahil) debounce ile tree.json'a yazılır.
+  const {
+    state: saveState,
+    lastSavedAt,
+    schedule: scheduleSave,
+    flush: flushSave,
+    isDirty,
+  } = useAutosave(saveTree);
+
+  // Masaüstünde diskteki proje okunana kadar kayıt kapalı; yoksa örnek ağaç gerçek dosyanın üzerine yazılır.
+  const loadedRef = useRef(!desktopBridge()?.loadProjectTree);
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'failed'>(
+    loadedRef.current ? 'ready' : 'loading'
+  );
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const handlePersist = useCallback((stampedProject: any) => {
-    setLastSavedAt(new Date().toISOString());
-    const api = (window as any).electronAPI || (window as any).api;
-    if (api && typeof api.saveProjectTree === 'function') {
-      api.saveProjectTree({ projectId: 'default', tree: stampedProject.tree });
-    }
-  }, []);
+    if (loadedRef.current) scheduleSave(stampedProject.tree);
+  }, [scheduleSave]);
 
   const {
     project,
@@ -218,7 +254,7 @@ export function App() {
     updateDocContent,
     updateMetadata,
   } = useProjectState({
-    initialTree: INITIAL_TREE as any,
+    initialTree: (readWebTree() || INITIAL_TREE) as any,
     projectName: 'OpenScriv Projesi',
     onPersist: handlePersist,
   });
@@ -241,7 +277,6 @@ export function App() {
   const [themeCustomizerOpen, setThemeCustomizerOpen] = useState(false);
   const [scratchpadOpen, setScratchpadOpen] = useState(false);
   const [zoom, setZoom] = useState(100);
-  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(() => soundEngine.isEnabled());
 
   // Stüdyo Araç Modalları (Faz 88 - Faz 98)
@@ -314,11 +349,48 @@ export function App() {
     return tree.find((n: any) => n.type === 'folder') || { id: 'root', type: 'folder', title: 'Tüm Belgeler', children: tree };
   }, [activeNode, tree]);
 
-  // Otomatik kaydetme kancası
-  useAutosave(
-    activeDoc ? { id: activeDoc.id, content: activeDoc.content, title: activeDoc.title } : null,
-    { delay: 2000, projectId: 'default' }
-  );
+  // Açılışta projeyi diskten yükle
+  useEffect(() => {
+    if (loadedRef.current) return;
+    desktopBridge()
+      .loadProjectTree({ projectId: PROJECT_ID })
+      .then((res: any) => {
+        if (!res?.ok) throw new Error(res?.error || 'Proje dosyası okunamadı.');
+        if (Array.isArray(res.tree) && res.tree.length) {
+          setProject((p: any) => ({ ...p, tree: res.tree }));
+          const first = findFirstDoc(res.tree);
+          if (first) {
+            setSelectedId(first.id);
+            setOpenTabs([{ id: first.id, title: first.title }]);
+          }
+        }
+        loadedRef.current = true;
+        setLoadState('ready');
+      })
+      .catch((err: Error) => {
+        setLoadError(err.message);
+        setLoadState('failed');
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Kapanışta bekleyen kaydı yaz; yazılamazsa kullanıcıya sor.
+  useEffect(() => {
+    let closing = false;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (closing || !isDirty()) return;
+      e.preventDefault();
+      e.returnValue = false as any;
+      flushSave().then(() => {
+        if (!isDirty() || window.confirm('Son değişiklikler kaydedilemedi. Yine de kapatılsın mı?')) {
+          closing = true;
+          window.close();
+        }
+      });
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [flushSave, isDirty]);
 
   // Canlı kelime sayısı
   const activeWords = useMemo(() => countWords(activeDoc?.content || ''), [activeDoc?.content]);
@@ -610,11 +682,34 @@ export function App() {
       } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'n') {
         e.preventDefault();
         setScratchpadOpen((prev) => !prev);
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        flushSave();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [flushSave]);
+
+  if (loadState !== 'ready') {
+    return (
+      <div
+        className="desktop-app-container"
+        role="status"
+        style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '24px', textAlign: 'center' }}
+      >
+        {loadState === 'loading' ? (
+          <span>Proje yükleniyor…</span>
+        ) : (
+          <>
+            <strong>Proje açılamadı</strong>
+            <span>{loadError}</span>
+            <span>Dosyanızın üzerine yazılmaması için uygulama kayıt yapmadan durduruldu.</span>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="desktop-app-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
@@ -850,6 +945,9 @@ export function App() {
                 <Editor
                   document={activeDoc}
                   onChange={handleContentChange}
+                  onRename={renameNode}
+                  saveState={saveState}
+                  lastSavedAt={lastSavedAt}
                   ariaLabel="Manuscript editor"
                 />
               )}
@@ -903,6 +1001,9 @@ export function App() {
                     <Editor
                       document={activeDoc}
                       onChange={handleContentChange}
+                      onRename={renameNode}
+                      saveState={saveState}
+                      lastSavedAt={lastSavedAt}
                       ariaLabel="Manuscript editor"
                     />
                   )}
@@ -931,15 +1032,16 @@ export function App() {
                       onChange={(e) => setSecondaryDocId(e.target.value)}
                       style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border, #d9d4c8)', background: 'var(--bg-card, #fff)', color: 'var(--text, #2c2518)' }}
                     >
-                      <option value="doc-char-protagonist">Karakter: Eren</option>
-                      <option value="doc-chapter-1">Bölüm 1: Başlangıç</option>
-                      <option value="doc-chapter-2">Bölüm 2: İpucu</option>
+                      {allDocuments.map((d) => (
+                        <option key={d.id} value={d.id}>{d.title}</option>
+                      ))}
                     </select>
                   </div>
                   <div style={{ flex: 1, overflow: 'auto' }}>
                     <Editor
                       document={findNodeInTree(tree, secondaryDocId) || activeDoc}
                       onChange={handleContentChange}
+                      onRename={renameNode}
                       ariaLabel="Secondary editor"
                     />
                   </div>

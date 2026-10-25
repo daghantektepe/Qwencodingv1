@@ -19,8 +19,6 @@ const FORMATS = [
   { id: 'txt', label: 'Düz Metin (.txt)' },
   { id: 'md', label: 'Markdown (.md)' },
   { id: 'html', label: 'HTML (.html)' },
-  { id: 'docx', label: 'Word (.docx)' },
-  { id: 'pdf', label: 'PDF (.pdf)' },
 ];
 
 function collectScopeOptions(tree) {
@@ -39,42 +37,50 @@ export default function CompileDialog({ open, onClose, tree, onCompile }) {
   const [format, setFormat] = useState('md');
   const [scopeId, setScopeId] = useState('all');
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
+  // { ok: boolean, message: string } | null
+  const [result, setResult] = useState(null);
 
   const scopeOptions = useMemo(() => collectScopeOptions(tree), [tree]);
 
   useEffect(() => {
-    if (open) setDone(false);
+    if (open) setResult(null);
   }, [open]);
 
   if (!open) return null;
 
   const handleCompile = async () => {
     setBusy(true);
+    setResult(null);
     try {
       if (onCompile) {
         await onCompile({ format, scopeId });
-      } else {
-        const api = typeof window !== 'undefined' ? (window.electronAPI || window.api) : null;
-        if (api?.compileRun) {
-          const mappedFormat = format === 'md' ? 'markdown' : format === 'txt' ? 'plain' : format;
-          const docIds = scopeId && scopeId !== 'all' ? [scopeId] : undefined;
-          const res = await api.compileRun({
-            projectId: 'default',
-            tree,
-            docIds,
-            format: mappedFormat,
-            projectName: 'OpenScriv Projesi',
-          });
-          if (res?.ok && res.compiled && api.saveCompiledFile) {
-            await api.saveCompiledFile({
-              content: res.compiled.content,
-              fileName: res.compiled.fileName,
-            });
-          }
-        }
+        setResult({ ok: true, message: '✓ Derleme tamamlandı.' });
+        return;
       }
-      setDone(true);
+      const api = typeof window !== 'undefined' ? (window.electronAPI || window.api) : null;
+      if (!api?.compileRun || !api.saveCompiledFile) {
+        setResult({ ok: false, message: 'Derleme yalnızca masaüstü uygulamasında kullanılabilir.' });
+        return;
+      }
+      const mappedFormat = format === 'md' ? 'markdown' : format === 'txt' ? 'plain' : format;
+      const docIds = scopeId && scopeId !== 'all' ? [scopeId] : undefined;
+      const res = await api.compileRun({
+        projectId: 'default',
+        tree,
+        docIds,
+        format: mappedFormat,
+        projectName: 'OpenScriv Projesi',
+      });
+      if (!res?.ok) throw new Error(res?.error || 'Derleme başarısız.');
+      const saved = await api.saveCompiledFile({
+        content: res.compiled.content,
+        fileName: res.compiled.fileName,
+      });
+      if (saved?.canceled) return;
+      if (!saved?.ok) throw new Error(saved?.error || 'Dosya kaydedilemedi.');
+      setResult({ ok: true, message: `✓ ${res.compiled.docCount} doküman derlendi: ${saved.path}` });
+    } catch (err) {
+      setResult({ ok: false, message: err.message || 'Derleme başarısız.' });
     } finally {
       setBusy(false);
     }
@@ -131,9 +137,13 @@ export default function CompileDialog({ open, onClose, tree, onCompile }) {
             </select>
           </label>
 
-          {done && (
-            <p className="compile-done" role="status">
-              ✓ Derleme tamamlandı — çıktı proje klasöründe.
+          {result && (
+            <p
+              className={result.ok ? 'compile-done' : 'compile-error'}
+              role="status"
+              style={result.ok ? undefined : { color: 'var(--danger, #b3261e)' }}
+            >
+              {result.message}
             </p>
           )}
         </div>

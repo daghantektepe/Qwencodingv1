@@ -78,19 +78,23 @@ export function defaultSaveFn(docId: string, content: string, projectId?: string
  */
 export function saveDocument(docId: string, content: string, projectId?: string): Promise<void>;
 
+export type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
+
 /**
- * React hook for automatic document saving with debounce.
- * 
- * @param doc - The document to autosave (can be null)
- * @param options - Autosave configuration options
- * @returns Object containing saveNow function for manual saves
+ * Debounced saver with an honest state machine. `saved` is only reported
+ * after saveFn resolves without `{ ok: false }`.
  */
-export function useAutosave(
-  doc: AutosaveDocument | null,
-  options?: UseAutosaveOptions
+export function useAutosave<T>(
+  saveFn: (value: T) => Promise<any>,
+  options?: { delay?: number }
 ): {
-  /** Manually trigger an immediate save */
-  saveNow: () => Promise<void>;
+  state: SaveState;
+  lastSavedAt: string | null;
+  /** Queue a value; it is written after `delay` ms of quiet. */
+  schedule: (value: T) => void;
+  /** Write the pending value now (Ctrl+S, window close). */
+  flush: () => Promise<void>;
+  isDirty: () => boolean;
 };
 
 /**

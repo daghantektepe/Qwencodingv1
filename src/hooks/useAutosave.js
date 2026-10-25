@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect, useState } from 'react';
 
 /**
  * @typedef {Object} PersistResult
@@ -58,58 +58,61 @@ export async function saveDocument(docId, content, projectId = 'default') {
 }
 
 /**
- * useAutosave hook - Automatically saves document content after a debounce delay.
- * Supports electronAPI.saveDocument and saveDoc.
- * 
- * @param {{docId: string, content: string} | null} doc - The document to autosave
- * @param {{delay?: number, projectId?: string}} [options={}] - Autosave options
- * @returns {{saveNow: function(): Promise<void>}}
+ * useAutosave - Debounce'lu, dürüst kayıt durum makinesi.
+ *
+ * state: 'idle' | 'dirty' | 'saving' | 'saved' | 'error'
+ *   'saved' yalnızca saveFn gerçekten başarılı döndüğünde gösterilir.
+ *   saveFn { ok: false } döndürür ya da fırlatırsa 'error' olur ve değer
+ *   bir sonraki flush'ta yeniden denenmek üzere bekletilir.
+ *
+ * @param {(value: any) => Promise<any>} saveFn - Gerçek yazma işlemi
+ * @param {{delay?: number}} [options]
+ * @returns {{state: string, lastSavedAt: string|null, schedule: (value: any) => void, flush: () => Promise<void>, isDirty: () => boolean}}
  */
-export function useAutosave(doc, options = {}) {
-  const { delay = 1500, projectId = 'default' } = options;
+export function useAutosave(saveFn, options = {}) {
+  const { delay = 800 } = options;
+  const [state, setState] = useState('idle');
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const pendingRef = useRef(undefined);
   const timerRef = useRef(null);
-  const lastSavedRef = useRef('');
+  // Yazmalar sıraya alınır: aynı dosyaya eşzamanlı iki yazma olmaz.
+  const chainRef = useRef(Promise.resolve());
+  const saveFnRef = useRef(saveFn);
+  saveFnRef.current = saveFn;
 
-  const save = useCallback(async (docId, content) => {
-    try {
-      await defaultSaveFn(docId, content, projectId);
-      lastSavedRef.current = content;
-    } catch (error) {
-      console.error('[useAutosave] Save failed:', error);
-    }
-  }, [projectId]);
-
-  useEffect(() => {
-    if (!doc) return;
-
-    // Clear existing timer
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-
-    // Only save if content changed
-    if (doc.content !== lastSavedRef.current) {
-      timerRef.current = setTimeout(() => {
-        save(doc.docId, doc.content);
-      }, delay);
-    }
-
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
+  const flush = useCallback(() => {
+    clearTimeout(timerRef.current);
+    chainRef.current = chainRef.current.then(async () => {
+      if (pendingRef.current === undefined) return;
+      const value = pendingRef.current;
+      pendingRef.current = undefined;
+      setState('saving');
+      try {
+        const res = await saveFnRef.current(value);
+        if (res && res.ok === false) throw new Error(res.error || 'Kayıt başarısız');
+        setLastSavedAt(new Date().toISOString());
+        setState(pendingRef.current === undefined ? 'saved' : 'dirty');
+      } catch (error) {
+        console.error('[useAutosave] Save failed:', error);
+        if (pendingRef.current === undefined) pendingRef.current = value;
+        setState('error');
       }
-    };
-  }, [doc, delay, save]);
+    });
+    return chainRef.current;
+  }, []);
 
-  const saveNow = useCallback(async () => {
-    if (!doc) return;
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-    await save(doc.docId, doc.content);
-  }, [doc, save]);
+  const schedule = useCallback((value) => {
+    pendingRef.current = value;
+    setState('dirty');
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(flush, delay);
+  }, [delay, flush]);
 
-  return { saveNow };
+  const isDirty = useCallback(() => pendingRef.current !== undefined, []);
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  return { state, lastSavedAt, schedule, flush, isDirty };
 }
 
 export default useAutosave;

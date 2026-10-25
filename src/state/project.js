@@ -309,7 +309,7 @@ export function useProjectState({
   return {
     project,
     tree: project.tree,
-    setProject: (p) => commit(p),
+    setProject: (p) => commit(typeof p === 'function' ? p(project) : p),
     // tree CRUD
     addDoc,
     deleteNode,

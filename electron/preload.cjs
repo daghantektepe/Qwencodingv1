@@ -32,7 +32,13 @@ const ALLOWED_INVOKE_CHANNELS = new Set([
   'fts:search',
 
   // PDF Printing
-  'pdf:print-to-pdf',
+  'pdf:print-vector',
+  'pdf:get-presets',
+
+  // Tray & Multi-Window events
+  'tray:toggle-quick-note',
+  'tray:hide-quick-note',
+  'window:broadcast-event',
 
   // Updater
   'updater:check',
@@ -77,12 +83,13 @@ const ALLOWED_INVOKE_CHANNELS = new Set([
   'snapshot-delete',
   'compile:run',
   'save-compiled-file',
-  'backup-mark-dirty',
-  'backup-create',
-  'backup-list',
-  'backup-restore',
-  'backup-crash-info',
-  'backup-crash-dismiss',
+  'backup:mark-dirty',
+  'backup:create',
+  'backup:list',
+  'backup:load',
+  'backup:restore',
+  'backup:crash-info',
+  'backup:flush-pending',
 ]);
 
 // Renderer'ın dinleyebileceği izinli event kanalları
@@ -126,6 +133,19 @@ const secureBridge = {
   // Yardımcı Kısayollar
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   getUserDataPath: () => ipcRenderer.invoke('get-user-data-path'),
+
+  // İsimli API (src/types/electron.d.ts sözleşmesi) — her biri gerçek bir main handler'a bağlı
+  saveDocument: (p) => ipcRenderer.invoke('save-document', p),
+  loadDocument: (p) => ipcRenderer.invoke('load-document', p),
+  loadProject: (p) => ipcRenderer.invoke('load-project', p),
+  saveProjectTree: (p) => ipcRenderer.invoke('save-project-tree', p),
+  loadProjectTree: (p) => ipcRenderer.invoke('load-project-tree', p),
+  createSnapshot: (p) => ipcRenderer.invoke('snapshot-create', p),
+  listSnapshots: (p) => ipcRenderer.invoke('snapshot-list', p),
+  loadSnapshot: (p) => ipcRenderer.invoke('snapshot-load', p),
+  deleteSnapshot: (p) => ipcRenderer.invoke('snapshot-delete', p),
+  compileRun: (p) => ipcRenderer.invoke('compile:run', p),
+  saveCompiledFile: (p) => ipcRenderer.invoke('save-compiled-file', p),
 };
 
 contextBridge.exposeInMainWorld('electronBridge', secureBridge);

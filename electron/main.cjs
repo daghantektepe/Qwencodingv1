@@ -264,7 +264,8 @@ app.whenReady().then(() => {
       try {
         tree = JSON.parse(await fs.readFile(filePath, 'utf8'));
       } catch (err) {
-        if (err.code !== 'ENOENT' && !(err instanceof SyntaxError)) throw err;
+        // Bozuk JSON'u boş ağaç gibi göstermek, ilk kayıtta dosyanın üzerine yazılmasına yol açar.
+        if (err.code !== 'ENOENT') throw err;
       }
       return { ok: true, tree };
     } catch (err) {

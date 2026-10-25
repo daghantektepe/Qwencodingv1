@@ -1,5 +1,33 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { defaultSaveFn, saveDocument as saveDocumentExported } from '../src/hooks/useAutosave';
+import { renderHook, act } from '@testing-library/react';
+import { defaultSaveFn, saveDocument as saveDocumentExported, useAutosave } from '../src/hooks/useAutosave';
+
+describe('useAutosave state machine', () => {
+  it('reports saved only after a real write, and keeps the value on failure for retry', async () => {
+    vi.useFakeTimers();
+    const saveFn = vi.fn()
+      .mockResolvedValueOnce({ ok: false, error: 'disk full' })
+      .mockResolvedValueOnce({ ok: true });
+    const { result } = renderHook(() => useAutosave(saveFn, { delay: 500 }));
+
+    act(() => result.current.schedule(['v1']));
+    expect(result.current.state).toBe('dirty');
+    expect(saveFn).not.toHaveBeenCalled();
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    expect(saveFn).toHaveBeenCalledWith(['v1']);
+    expect(result.current.state).toBe('error');
+    expect(result.current.isDirty()).toBe(true);
+    expect(result.current.lastSavedAt).toBeNull();
+
+    await act(async () => { await result.current.flush(); });
+    expect(saveFn).toHaveBeenLastCalledWith(['v1']);
+    expect(result.current.state).toBe('saved');
+    expect(result.current.isDirty()).toBe(false);
+    expect(result.current.lastSavedAt).not.toBeNull();
+    vi.useRealTimers();
+  });
+});
 
 describe('useAutosave - defaultSaveFn', () => {
   let saveDocument: ReturnType<typeof vi.fn>;
