@@ -3,7 +3,7 @@
  * Phase 102: Yerel Dosya Sistemi ve Özgün Proje Paketi Formatı (.opscriv)
  */
 
-const { ipcMain, dialog } = require('electron');
+const { ipcMain, dialog, app } = require('electron');
 const path = require('path');
 const fs = require('fs/promises');
 const crypto = require('crypto');
@@ -12,9 +12,14 @@ function computeHash(content) {
   return crypto.createHash('sha256').update(content).digest('hex');
 }
 
+// Yalnızca dosya sisteminde yasak karakterleri ayıklar; Türkçe ve diğer harfler korunur.
 function sanitizeFileName(name) {
   if (!name || typeof name !== 'string') return '';
-  return path.basename(name).replace(/[^a-zA-Z0-9_\-\. ]/g, '_');
+  return path
+    .basename(name)
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
+    .replace(/[. ]+$/g, '')
+    .trim();
 }
 
 function sanitizeDocId(docId) {
@@ -43,6 +48,62 @@ async function writeAtomic(targetPath, data) {
   await fs.rename(tmpPath, targetPath);
 }
 
+const isDocNode = (n) => n && (n.type === 'doc' || n.type === 'document');
+
+// Uygulama ağacı (metin dahil) -> binder (yalnızca yapı + metadata) ve belge listesi.
+function splitTree(tree) {
+  const docs = [];
+  const strip = (nodes) =>
+    (nodes || []).map((n) => {
+      const { content, contentHtml, children, ...rest } = n;
+      if (isDocNode(n)) docs.push({ id: n.id, content: content ?? '', contentHtml });
+      return Array.isArray(children) ? { ...rest, children: strip(children) } : rest;
+    });
+  return { binder: strip(tree), docs };
+}
+
+// binder + docs/*.md (düz metin) + docs/*.html (biçimli metin) -> uygulama ağacı.
+function mergeTree(binder, texts, htmls) {
+  const fill = (nodes) =>
+    (nodes || []).map((n) => {
+      const node = Array.isArray(n.children) ? { ...n, children: fill(n.children) } : { ...n };
+      if (isDocNode(node)) {
+        const key = sanitizeDocId(node.id);
+        node.type = 'doc';
+        node.content = texts[key] ?? '';
+        if (htmls[key] !== undefined) node.contentHtml = htmls[key];
+      }
+      return node;
+    });
+  return fill(binder);
+}
+
+// Son yazılan belge içerikleri (paket başına); yalnızca değişen belgeler diske yazılır.
+const writtenDocs = new Map();
+
+async function writeDocs(packagePath, docs) {
+  const cache = writtenDocs.get(packagePath) || new Map();
+  writtenDocs.set(packagePath, cache);
+  for (const doc of docs) {
+    const safeId = sanitizeDocId(doc.id);
+    if (!safeId) continue;
+    const key = `${doc.content}\u0000${doc.contentHtml ?? ''}`;
+    if (cache.get(safeId) === key) continue;
+    const base = path.join(packagePath, 'docs', safeId);
+    await writeAtomic(assertPathWithinRoot(`${base}.md`, packagePath), String(doc.content ?? ''));
+    const htmlPath = assertPathWithinRoot(`${base}.html`, packagePath);
+    if (doc.contentHtml !== undefined) await writeAtomic(htmlPath, String(doc.contentHtml));
+    else await fs.rm(htmlPath, { force: true });
+    cache.set(safeId, key);
+  }
+  // ponytail: binder'dan silinen belgelerin dosyaları docs/ içinde kalır (okunurken yok sayılır); çöp kutusu gelince temizlenir.
+}
+
+async function readManifest(packagePath) {
+  const manifestPath = assertPathWithinRoot(path.join(packagePath, 'manifest.json'), packagePath);
+  return { manifestPath, manifest: JSON.parse(await fs.readFile(manifestPath, 'utf8')) };
+}
+
 function registerProjectIpcHandlers() {
   // 1) Dizin Seçici Dialog
   ipcMain.handle('project:pick-directory', async (event, options = {}) => {
@@ -58,72 +119,48 @@ function registerProjectIpcHandlers() {
     }
   });
 
+  // Varsayılan proje konumu: Belgeler/OpenScriv
+  ipcMain.handle('project:default-dir', () => path.join(app.getPath('documents'), 'OpenScriv'));
+
   // 2) Yeni .opscriv Paketi Oluşturma
+  //    initialTree: uygulama ağacı (metin dahil). Var olan bir paketin üzerine asla yazmaz.
   ipcMain.handle('project:create-package', async (_event, payload) => {
     try {
-      const { parentDir, projectName, initialTree, initialDocs } = payload;
+      const { parentDir, projectName, initialTree } = payload || {};
       if (!parentDir || !projectName) {
         throw new Error('parentDir ve projectName zorunludur.');
       }
 
-      const cleanProjectName = sanitizeFileName(projectName);
+      const displayName = String(projectName).trim();
+      const cleanProjectName = sanitizeFileName(displayName.replace(/\.opscriv$/i, ''));
       if (!cleanProjectName) throw new Error('Geçersiz proje adı.');
 
-      const safeName = cleanProjectName.endsWith('.opscriv') ? cleanProjectName : `${cleanProjectName}.opscriv`;
       const resolvedParent = path.resolve(parentDir);
-      const packagePath = assertPathWithinRoot(path.join(resolvedParent, safeName), resolvedParent);
+      const packagePath = assertPathWithinRoot(path.join(resolvedParent, `${cleanProjectName}.opscriv`), resolvedParent);
+      const exists = await fs.stat(packagePath).then(() => true, () => false);
+      if (exists) throw new Error(`Bu konumda "${cleanProjectName}" adlı bir proje zaten var.`);
 
-      // Klasör yapısını kur
-      await ensureDir(packagePath);
-      await ensureDir(path.join(packagePath, 'docs'));
-      await ensureDir(path.join(packagePath, 'assets'));
-      await ensureDir(path.join(packagePath, 'snapshots'));
-      await ensureDir(path.join(packagePath, 'trash'));
+      for (const dir of ['docs', 'assets', 'snapshots', 'trash']) {
+        await ensureDir(path.join(packagePath, dir));
+      }
 
+      const { binder, docs } = splitTree(Array.isArray(initialTree) ? initialTree : []);
+      const binderStr = JSON.stringify(binder, null, 2);
       const now = new Date().toISOString();
       const manifest = {
-        name: cleanProjectName.replace(/\.opscriv$/, ''),
+        id: crypto.randomUUID(),
+        name: displayName.replace(/\.opscriv$/i, ''),
         formatVersion: '2.1',
         createdAt: now,
         updatedAt: now,
-        generator: 'OpenScriv v2.1 Desktop Mastery',
-        checksum: '',
+        generator: 'OpenScriv',
+        checksum: computeHash(binderStr),
       };
 
-      const binder = initialTree || [
-        {
-          id: 'manuscript_root',
-          title: 'Taslak (Manuscript)',
-          type: 'folder',
-          children: [
-            { id: 'doc_1', title: 'Bölüm 1', type: 'document' },
-          ],
-        },
-      ];
-
-      const binderStr = JSON.stringify(binder, null, 2);
-      manifest.checksum = computeHash(binderStr);
-
-      await writeAtomic(path.join(packagePath, 'manifest.json'), JSON.stringify(manifest, null, 2));
+      await writeDocs(packagePath, docs);
       await writeAtomic(path.join(packagePath, 'binder.json'), binderStr);
-
-      // Başlangıç belgelerini yaz
-      if (Array.isArray(initialDocs)) {
-        for (const doc of initialDocs) {
-          if (doc.id) {
-            const safeId = sanitizeDocId(doc.id);
-            if (safeId) {
-              const safeDocPath = assertPathWithinRoot(path.join(packagePath, 'docs', `${safeId}.md`), packagePath);
-              await writeAtomic(safeDocPath, doc.content || '');
-            }
-          }
-        }
-      } else {
-        await writeAtomic(
-          path.join(packagePath, 'docs', 'doc_1.md'),
-          '# Bölüm 1\n\nBuraya hikayenizi yazmaya başlayın...'
-        );
-      }
+      // manifest en son yazılır: manifest'i olan klasör tam bir pakettir.
+      await writeAtomic(path.join(packagePath, 'manifest.json'), JSON.stringify(manifest, null, 2));
 
       return { ok: true, packagePath, manifest };
     } catch (err) {
@@ -131,43 +168,66 @@ function registerProjectIpcHandlers() {
     }
   });
 
-  // 3) .opscriv Paketini Açma ve Yükleme
-  ipcMain.handle('project:read-package', async (_event, { packagePath }) => {
+  // 3) .opscriv Paketini Açma ve Yükleme -> { manifest, tree }
+  ipcMain.handle('project:read-package', async (_event, { packagePath } = {}) => {
     try {
       if (!packagePath) throw new Error('packagePath zorunludur.');
 
       const resolvedPackage = path.resolve(packagePath);
-      const manifestPath = assertPathWithinRoot(path.join(resolvedPackage, 'manifest.json'), resolvedPackage);
-      const binderPath = assertPathWithinRoot(path.join(resolvedPackage, 'binder.json'), resolvedPackage);
-      const docsDir = assertPathWithinRoot(path.join(resolvedPackage, 'docs'), resolvedPackage);
-
-      const manifestRaw = await fs.readFile(manifestPath, 'utf8');
-      const manifest = JSON.parse(manifestRaw);
-
-      let binder = [];
+      let read;
       try {
-        binder = JSON.parse(await fs.readFile(binderPath, 'utf8'));
-      } catch (e) {
-        binder = [];
+        read = await readManifest(resolvedPackage);
+      } catch (err) {
+        throw new Error(err.code === 'ENOENT' ? 'Seçilen klasör bir OpenScriv projesi değil (manifest.json yok).' : err.message);
+      }
+      const { manifestPath, manifest } = read;
+      if (!manifest.id) {
+        manifest.id = crypto.randomUUID();
+        await writeAtomic(manifestPath, JSON.stringify(manifest, null, 2));
       }
 
-      const docFiles = await fs.readdir(docsDir);
-      const documents = {};
-      for (const file of docFiles) {
-        if (file.endsWith('.md')) {
-          const docId = path.basename(file, '.md');
-          const safeDocPath = assertPathWithinRoot(path.join(docsDir, file), resolvedPackage);
-          documents[docId] = await fs.readFile(safeDocPath, 'utf8');
-        }
+      const binderPath = assertPathWithinRoot(path.join(resolvedPackage, 'binder.json'), resolvedPackage);
+      // Bozuk binder boş proje gibi açılmaz: ilk kayıt onu ezerdi.
+      const binder = JSON.parse(await fs.readFile(binderPath, 'utf8'));
+
+      const docsDir = assertPathWithinRoot(path.join(resolvedPackage, 'docs'), resolvedPackage);
+      const texts = {};
+      const htmls = {};
+      for (const file of await fs.readdir(docsDir).catch(() => [])) {
+        const ext = path.extname(file);
+        if (ext !== '.md' && ext !== '.html') continue;
+        const content = await fs.readFile(assertPathWithinRoot(path.join(docsDir, file), resolvedPackage), 'utf8');
+        (ext === '.md' ? texts : htmls)[path.basename(file, ext)] = content;
       }
 
-      return {
-        ok: true,
-        packagePath: resolvedPackage,
-        manifest,
-        binder,
-        documents,
-      };
+      const tree = mergeTree(binder, texts, htmls);
+      // Diskteki hâli önbelleğe al: açılıştan sonra yalnızca değişen belgeler yazılır.
+      writtenDocs.set(resolvedPackage, new Map(splitTree(tree).docs.map((d) => [sanitizeDocId(d.id), `${d.content}\u0000${d.contentHtml ?? ''}`])));
+
+      return { ok: true, packagePath: resolvedPackage, manifest, tree, binder, documents: texts };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  // 3b) Tüm projeyi kaydet: { packagePath, name, tree } (yalnızca değişen belgeler yazılır)
+  ipcMain.handle('project:save-package', async (_event, { packagePath, name, tree } = {}) => {
+    try {
+      if (!packagePath || !Array.isArray(tree)) throw new Error('packagePath ve tree zorunludur.');
+      const resolvedPackage = path.resolve(packagePath);
+      const { manifestPath, manifest } = await readManifest(resolvedPackage);
+
+      const { binder, docs } = splitTree(tree);
+      const binderStr = JSON.stringify(binder, null, 2);
+      await writeDocs(resolvedPackage, docs);
+      await writeAtomic(assertPathWithinRoot(path.join(resolvedPackage, 'binder.json'), resolvedPackage), binderStr);
+
+      if (typeof name === 'string' && name.trim()) manifest.name = name.trim();
+      manifest.updatedAt = new Date().toISOString();
+      manifest.checksum = computeHash(binderStr);
+      await writeAtomic(manifestPath, JSON.stringify(manifest, null, 2));
+
+      return { ok: true, savedAt: Date.now() };
     } catch (err) {
       return { ok: false, error: err.message };
     }
@@ -230,6 +290,8 @@ function registerProjectIpcHandlers() {
 
 module.exports = {
   registerProjectIpcHandlers,
+  splitTree,
+  mergeTree,
   writeAtomic,
   computeHash,
   sanitizeFileName,

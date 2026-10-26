@@ -45,7 +45,7 @@ import {
 import { useProjectState, DEFAULT_METADATA } from './state/project.js';
 // @ts-ignore
 import { countWords } from './utils/count.js';
-import { Palette, StickyNote } from 'lucide-react';
+import { Palette, StickyNote, FolderOpen } from 'lucide-react';
 
 import {
   FolderPlus,
@@ -89,6 +89,9 @@ import { DictionaryLookupPopover } from './components/Dictionary/DictionaryLooku
 import { BetaReaderFeedbackView } from './components/Feedback/BetaReaderFeedbackView.tsx';
 import { useTouchModeStore } from './services/platform/touchModeAdapter';
 import CustomTitlebar from './components/Window/CustomTitlebar.tsx';
+import WelcomeScreen, { type RecentProject } from './components/Project/WelcomeScreen.tsx';
+// @ts-ignore
+import { loadRecent, rememberProject, forgetProject } from './state/recentProjects.js';
 
 const INITIAL_TREE = [
   {
@@ -191,13 +194,18 @@ const DARK_THEMES = ['dark', 'midnight-velvet', 'emerald-scholar'];
 const PROJECT_ID = 'default';
 const WEB_TREE_KEY = `openscriv:tree:${PROJECT_ID}`;
 
-// Masaüstünde preload köprüsü; tarayıcıda (vite dev) localStorage.
+// Masaüstünde preload köprüsü; tarayıcıda (vite dev, testler) localStorage.
 function desktopBridge(): any {
   return (window as any).electronAPI;
 }
 
+// Masaüstü: her proje bir .opscriv paketi. Tarayıcı: tek proje, localStorage.
+function packageMode(): boolean {
+  return Boolean(desktopBridge()?.readPackage);
+}
+
 function readWebTree(): any[] | null {
-  if (desktopBridge()?.loadProjectTree) return null;
+  if (packageMode()) return null;
   try {
     const tree = JSON.parse(window.localStorage.getItem(WEB_TREE_KEY) || 'null');
     return Array.isArray(tree) && tree.length ? tree : null;
@@ -206,11 +214,30 @@ function readWebTree(): any[] | null {
   }
 }
 
-async function saveTree(tree: any[]) {
-  const api = desktopBridge();
-  if (api?.saveProjectTree) return api.saveProjectTree({ projectId: PROJECT_ID, tree });
+type SavePayload = { packagePath: string | null; name: string; tree: any[] };
+
+// packagePath kayıt zamanlandığında yakalanır: proje değişse bile eski kayıt yeni pakete yazılmaz.
+async function saveProject({ packagePath, name, tree }: SavePayload) {
+  if (packageMode()) {
+    if (!packagePath) return { ok: false, error: 'Açık proje yok.' };
+    return desktopBridge().savePackage({ packagePath, name, tree });
+  }
   window.localStorage.setItem(WEB_TREE_KEY, JSON.stringify(tree));
   return { ok: true };
+}
+
+function starterTree() {
+  const t = Date.now();
+  return [
+    {
+      id: `folder-${t}`,
+      type: 'folder',
+      title: 'Taslak',
+      metadata: { ...DEFAULT_METADATA },
+      children: [{ id: `doc-${t}`, type: 'doc', title: 'Bölüm 1', content: '', metadata: { ...DEFAULT_METADATA } }],
+    },
+    { id: `folder-${t + 1}`, type: 'folder', title: 'Araştırma & Notlar', metadata: { ...DEFAULT_METADATA }, children: [] },
+  ];
 }
 
 function flattenDocs(nodes: any[]): { id: string; title: string; content?: string }[] {
@@ -230,24 +257,34 @@ export function App() {
   const { theme, setTheme, toggleTheme, typography, setTypography } = useTheme();
   const isDarkTheme = DARK_THEMES.includes(theme);
 
-  // Disk kalıcılığı: ağaç (içerik dahil) debounce ile tree.json'a yazılır.
+  // Disk kalıcılığı: ad + ağaç (içerik dahil) debounce ile açık pakete yazılır.
   const {
     state: saveState,
     lastSavedAt,
     schedule: scheduleSave,
     flush: flushSave,
     isDirty,
-  } = useAutosave(saveTree);
+  } = useAutosave(saveProject);
 
-  // Masaüstünde diskteki proje okunana kadar kayıt kapalı; yoksa örnek ağaç gerçek dosyanın üzerine yazılır.
-  const loadedRef = useRef(!desktopBridge()?.loadProjectTree);
-  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'failed'>(
+  // Bir proje yüklenene kadar kayıt kapalı; yoksa örnek ağaç gerçek bir projenin üzerine yazılır.
+  const loadedRef = useRef(!packageMode());
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'welcome'>(
     loadedRef.current ? 'ready' : 'loading'
   );
   const [loadError, setLoadError] = useState<string | null>(null);
+  const projectPathRef = useRef<string | null>(null);
+  const [projectPath, setProjectPath] = useState<string | null>(null);
+  const [projectId, setProjectId] = useState(PROJECT_ID);
+  const [recent, setRecent] = useState<RecentProject[]>(() => loadRecent());
+  const [defaultDir, setDefaultDir] = useState('');
+  const [legacyTree, setLegacyTree] = useState<any[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [editingName, setEditingName] = useState(false);
 
   const handlePersist = useCallback((stampedProject: any) => {
-    if (loadedRef.current) scheduleSave(stampedProject.tree);
+    if (loadedRef.current) {
+      scheduleSave({ packagePath: projectPathRef.current, name: stampedProject.name, tree: stampedProject.tree });
+    }
   }, [scheduleSave]);
 
   const {
@@ -355,30 +392,125 @@ export function App() {
     return tree.find((n: any) => n.type === 'folder') || { id: 'root', type: 'folder', title: 'Tüm Belgeler', children: tree };
   }, [activeNode, tree]);
 
-  // Açılışta projeyi diskten yükle
-  useEffect(() => {
-    if (loadedRef.current) return;
-    desktopBridge()
-      .loadProjectTree({ projectId: PROJECT_ID })
-      .then((res: any) => {
-        if (!res?.ok) throw new Error(res?.error || 'Proje dosyası okunamadı.');
-        if (Array.isArray(res.tree) && res.tree.length) {
-          setProject((p: any) => ({ ...p, tree: res.tree }));
-          const first = findFirstDoc(res.tree);
-          if (first) {
-            setSelectedId(first.id);
-            setOpenTabs([{ id: first.id, title: first.title }]);
-          }
-        }
-        loadedRef.current = true;
-        setLoadState('ready');
-      })
-      .catch((err: Error) => {
-        setLoadError(err.message);
-        setLoadState('failed');
+  // --- Projeler (.opscriv paketleri) ---
+
+  const showWelcome = useCallback((error: string | null = null) => {
+    loadedRef.current = false; // karşılama ekranındayken hiçbir şey kaydedilmez
+    setLoadError(error);
+    setRecent(loadRecent());
+    setLoadState('welcome');
+  }, []);
+
+  const openProject = useCallback(async (packagePath: string) => {
+    setBusy(true);
+    try {
+      await flushSave(); // önceki projenin bekleyen kaydı, kendi paketine
+      const res = await desktopBridge().readPackage({ packagePath });
+      if (!res?.ok) {
+        showWelcome(`Proje açılamadı: ${packagePath}\n${res?.error || ''}`);
+        return;
+      }
+      loadedRef.current = false;
+      projectPathRef.current = res.packagePath;
+      setProjectPath(res.packagePath);
+      setProjectId(res.manifest.id || PROJECT_ID);
+      setProject((p: any) => ({ ...p, name: res.manifest.name, tree: res.tree }));
+      const first = findFirstDoc(res.tree);
+      setSelectedId(first?.id || '');
+      setOpenTabs(first ? [{ id: first.id, title: first.title }] : []);
+      setSecondaryDocId(first?.id || '');
+      setViewMode('editor');
+      setRecent(rememberProject(res.packagePath, res.manifest.name));
+      loadedRef.current = true;
+      setLoadError(null);
+      setLoadState('ready');
+    } finally {
+      setBusy(false);
+    }
+  }, [flushSave, setProject, showWelcome]);
+
+  const createProject = useCallback(async ({ name, parentDir, importLegacy }: { name: string; parentDir: string; importLegacy: boolean }) => {
+    setBusy(true);
+    let res: any;
+    try {
+      res = await desktopBridge().createPackage({
+        parentDir,
+        projectName: name,
+        initialTree: importLegacy && legacyTree ? legacyTree : starterTree(),
       });
+    } finally {
+      setBusy(false);
+    }
+    if (!res?.ok) {
+      setLoadError(res?.error || 'Proje oluşturulamadı.');
+      return;
+    }
+    // Diskten geri okuyarak aç: yazılanın gerçekten okunabildiğini de doğrular.
+    await openProject(res.packagePath);
+  }, [legacyTree, openProject]);
+
+  const pickDir = useCallback(async (title: string, buttonLabel: string) => {
+    const res = await desktopBridge().pickDirectory({ title, buttonLabel });
+    return res && !res.canceled && res.path ? (res.path as string) : null;
+  }, []);
+
+  const openOtherProject = useCallback(async () => {
+    const picked = await pickDir('Proje aç: .opscriv klasörünü seçin', 'Aç');
+    if (picked) await openProject(picked);
+  }, [pickDir, openProject]);
+
+  // Proje değiştir: önce bekleyen kaydı yaz; yazılamadıysa sor.
+  const switchProject = useCallback(async () => {
+    await flushSave();
+    if (isDirty() && !window.confirm('Son değişiklikler kaydedilemedi. Yine de proje değiştirilsin mi?')) return;
+    showWelcome();
+  }, [flushSave, isDirty, showWelcome]);
+
+  // Açılış: en son projeyi aç; yoksa karşılama ekranı.
+  useEffect(() => {
+    if (!packageMode()) return;
+    const last = loadRecent()[0];
+    if (last) openProject(last.path);
+    else showWelcome();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Karşılama ekranı verileri: varsayılan konum ve eski tek-proje çalışması (tree.json)
+  useEffect(() => {
+    if (loadState !== 'welcome') return;
+    const api = desktopBridge();
+    api.defaultProjectDir?.().then((dir: string) => setDefaultDir(dir));
+    api.loadProjectTree?.({ projectId: PROJECT_ID }).then((res: any) => {
+      setLegacyTree(res?.ok && Array.isArray(res.tree) && res.tree.length ? res.tree : null);
+    });
+  }, [loadState]);
+
+  // Yerel Dosya menüsü (Ctrl+N / Ctrl+O / Ctrl+S kısayolları sayfaya ulaşmadan menüde yakalanır)
+  useEffect(() => {
+    const api = desktopBridge();
+    if (!api?.on) return undefined;
+    return api.on('menu:action', (_e: unknown, msg: { action?: string }) => {
+      switch (msg?.action) {
+        case 'file:new-project':
+          switchProject();
+          break;
+        case 'file:open-project':
+          openOtherProject();
+          break;
+        case 'file:save':
+          flushSave();
+          break;
+        case 'file:compile':
+          setCompileOpen(true);
+          break;
+        case 'file:batch-export':
+          setBatchExportOpen(true);
+          break;
+        default:
+          break;
+      }
+    });
+  }, [switchProject, openOtherProject, flushSave]);
 
   // Kapanışta bekleyen kaydı yaz; yazılamazsa kullanıcıya sor.
   useEffect(() => {
@@ -697,22 +829,43 @@ export function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [flushSave]);
 
-  if (loadState !== 'ready') {
+  if (loadState === 'loading') {
     return (
       <div
         className="desktop-app-container"
         role="status"
-        style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '24px', textAlign: 'center' }}
+        style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}
       >
-        {loadState === 'loading' ? (
-          <span>Proje yükleniyor…</span>
-        ) : (
-          <>
-            <strong>Proje açılamadı</strong>
-            <span>{loadError}</span>
-            <span>Dosyanızın üzerine yazılmaması için uygulama kayıt yapmadan durduruldu.</span>
-          </>
-        )}
+        Proje yükleniyor…
+      </div>
+    );
+  }
+
+  if (loadState === 'welcome') {
+    return (
+      <div className="desktop-app-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+        <CustomTitlebar projectName="OpenScriv" />
+        <WelcomeScreen
+          recent={recent}
+          defaultDir={defaultDir}
+          legacyDocCount={legacyTree ? flattenDocs(legacyTree).length : 0}
+          busy={busy}
+          error={loadError}
+          onCreate={createProject}
+          onPickDir={() => pickDir('Projenin oluşturulacağı klasörü seçin', 'Seç')}
+          onOpenRecent={openProject}
+          onOpenOther={openOtherProject}
+          onForget={(path) => setRecent(forgetProject(path))}
+          onCancel={
+            projectPath
+              ? () => {
+                  loadedRef.current = true;
+                  setLoadError(null);
+                  setLoadState('ready');
+                }
+              : undefined
+          }
+        />
       </div>
     );
   }
@@ -727,11 +880,43 @@ export function App() {
         {/* Sol Panel: Proje Ağacı */}
       <aside className="sidebar" aria-label="Proje ağacı">
         <div className="brand">
-          <div>
-            <strong>OpenScriv</strong>
-            <span>{project.name || 'OpenScriv Projesi'}</span>
+          <div className="brand__name">
+            {editingName ? (
+              <input
+                className="brand__input"
+                defaultValue={project.name}
+                autoFocus
+                aria-label="Proje adı"
+                onFocus={(e) => e.currentTarget.select()}
+                onBlur={(e) => {
+                  const next = e.currentTarget.value.trim();
+                  setEditingName(false);
+                  if (next && next !== project.name) setProject((p: any) => ({ ...p, name: next }));
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') e.currentTarget.blur();
+                  if (e.key === 'Escape') setEditingName(false);
+                }}
+              />
+            ) : (
+              <strong title="Yeniden adlandırmak için çift tıklayın" onDoubleClick={() => setEditingName(true)}>
+                {project.name || 'OpenScriv Projesi'}
+              </strong>
+            )}
+            <span>OpenScriv</span>
           </div>
           <div className="toolbar__group">
+            {projectPath && (
+              <button
+                className="btn btn--ghost btn--icon"
+                type="button"
+                aria-label="Projeler"
+                title="Proje aç veya yeni proje oluştur"
+                onClick={switchProject}
+              >
+                <FolderOpen size={16} />
+              </button>
+            )}
             <button
               className="btn btn--ghost btn--icon"
               type="button"
@@ -1066,7 +1251,7 @@ export function App() {
           {inspectorTab === 'snapshots' && (
             <Snapshots
               document={activeDoc}
-              projectId="default"
+              projectId={projectId}
               onRestore={handleRestoreSnapshot}
             />
           )}
@@ -1083,7 +1268,7 @@ export function App() {
       {/* Arama Diyaloğu (Modal) */}
       <Search
         tree={tree}
-        projectId="default"
+        projectId={projectId}
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
         onSelectDoc={handleSelectDocById}
@@ -1093,7 +1278,7 @@ export function App() {
       <CompileDialog
         open={compileOpen}
         tree={tree}
-        projectId="default"
+        projectId={projectId}
         projectName={project.name || 'OpenScriv Projesi'}
         onClose={() => setCompileOpen(false)}
       />

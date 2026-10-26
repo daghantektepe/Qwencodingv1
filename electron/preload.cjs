@@ -25,6 +25,8 @@ const ALLOWED_INVOKE_CHANNELS = new Set([
   'project:read-package',
   'project:save-doc-atomic',
   'project:save-binder-atomic',
+  'project:save-package',
+  'project:default-dir',
 
   // SQLite FTS5 Search
   'fts:index-project',
@@ -146,6 +148,13 @@ const secureBridge = {
   deleteSnapshot: (p) => ipcRenderer.invoke('snapshot-delete', p),
   compileRun: (p) => ipcRenderer.invoke('compile:run', p),
   saveCompiledFile: (p) => ipcRenderer.invoke('save-compiled-file', p),
+
+  // .opscriv proje paketleri
+  pickDirectory: (p) => ipcRenderer.invoke('project:pick-directory', p),
+  defaultProjectDir: () => ipcRenderer.invoke('project:default-dir'),
+  createPackage: (p) => ipcRenderer.invoke('project:create-package', p),
+  readPackage: (p) => ipcRenderer.invoke('project:read-package', p),
+  savePackage: (p) => ipcRenderer.invoke('project:save-package', p),
 };
 
 contextBridge.exposeInMainWorld('electronBridge', secureBridge);
