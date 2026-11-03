@@ -1,0 +1,207 @@
+/* TopNavigation Header & Toolbar Styles */
+
+.top-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 44px;
+  padding: 0 14px;
+  background: var(--bg-header, #efece4);
+  border-bottom: 1px solid var(--border, #d9d4c8);
+  user-select: none;
+  flex: 0 0 auto;
+}
+
+/* Left Group */
+.top-nav-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.top-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-primary, #2c2518);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.top-nav-btn:hover {
+  background: var(--bg-hover, #e4dfd2);
+}
+
+.top-nav-btn.active {
+  background: var(--bg-selected, #ded7c5);
+  border-color: var(--border, #cfc8b7);
+}
+
+.top-nav-btn.icon-only {
+  padding: 0;
+  width: 30px;
+}
+
+.project-selector-btn {
+  background: var(--bg-card, #ffffff);
+  border-color: var(--border, #d9d4c8);
+  padding: 0 10px;
+  max-width: 220px;
+}
+
+.project-selector-btn:hover {
+  border-color: var(--accent, #7a6c4f);
+}
+
+.project-name-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* Center Group: Primary 3 Pillars */
+.top-nav-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card, rgba(255, 255, 255, 0.6));
+  padding: 3px 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #d9d4c8);
+}
+
+.top-nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #6b6455);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.top-nav-tab:hover {
+  color: var(--text-primary, #2c2518);
+  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+}
+
+.top-nav-tab.active {
+  color: var(--accent, #7a6c4f);
+  background: var(--bg-selected, #ffffff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.export-tab {
+  color: var(--accent, #7a6c4f);
+}
+
+/* Planla & Araştır Dropdown */
+.plan-dropdown-container {
+  position: relative;
+}
+
+.plan-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1000;
+  min-width: 210px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border, #d9d4c8);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: menu-slide 120ms ease-out;
+}
+
+@keyframes menu-slide {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.plan-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-primary, #2c2518);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 100ms ease;
+}
+
+.plan-menu-item:hover {
+  background: var(--bg-hover, #f3efe6);
+  color: var(--accent, #7a6c4f);
+}
+
+.plan-menu-item.selected {
+  background: var(--bg-selected, #e8e2d4);
+  color: var(--accent, #7a6c4f);
+  font-weight: 600;
+}
+
+/* Right Group */
+.top-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.live-word-count {
+  font-size: 12px;
+  color: var(--text-muted, #7c7365);
+  margin-right: 6px;
+  white-space: nowrap;
+}
+
+.live-word-count strong {
+  color: var(--text-primary, #2c2518);
+  font-variant-numeric: tabular-nums;
+}
+
+.tools-btn {
+  background: var(--accent-soft, rgba(122, 108, 79, 0.12));
+  color: var(--accent, #7a6c4f);
+  font-weight: 600;
+}
+
+.tools-btn:hover {
+  background: var(--accent-soft, rgba(122, 108, 79, 0.2));
+}
+
+@media (max-width: 1024px) {
+  .tools-label {
+    display: none;
+  }
+  .live-word-count {
+    display: none;
+  }
+}
