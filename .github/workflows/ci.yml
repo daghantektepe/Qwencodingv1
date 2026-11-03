@@ -27,7 +27,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Typecheck and Build Production Bundle
         run: npm run build
@@ -43,9 +43,19 @@ jobs:
         if: runner.os == 'Windows'
         run: npm run dist:win
 
+      - name: Generate Build & Distribution Manifest
+        if: runner.os == 'Windows'
+        run: node scripts/generate_manifest.cjs
+
+      - name: Verify Packaged Windows Executable Smoke Test
+        if: runner.os == 'Windows'
+        run: node scripts/smoke_electron.cjs --exe
+
       - name: Upload Windows Distribution Artifacts
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
           name: openscriv-windows-dist
-          path: release-builds/*.exe
+          path: |
+            release-builds/*.exe
+            release-builds/manifest.json
