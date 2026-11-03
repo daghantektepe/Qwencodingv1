@@ -132,9 +132,50 @@
   box-shadow: 0 0 0 2px var(--success-soft, rgba(46, 107, 62, 0.18));
 }
 
+.status-save.is-saving .status-save__dot {
+  background: var(--accent, #7a6c4f);
+  box-shadow: 0 0 0 2px var(--accent-soft, rgba(122, 108, 79, 0.25));
+  animation: pulse-dot 1s infinite alternate;
+}
+
+.status-save.is-dirty .status-save__dot {
+  background: var(--warning, #c98a2d);
+  box-shadow: 0 0 0 2px rgba(201, 138, 45, 0.2);
+}
+
+.status-save.is-error {
+  color: var(--danger, #b3261e);
+}
+
+.status-save.is-error .status-save__dot {
+  background: var(--danger, #b3261e);
+  box-shadow: 0 0 0 2px rgba(179, 38, 30, 0.2);
+}
+
 .status-save.is-none .status-save__dot {
   background: var(--text-muted, #948b78);
   box-shadow: none;
+}
+
+.status-save__retry-btn {
+  background: var(--danger, #b3261e);
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  font-size: 10px;
+  padding: 1px 6px;
+  cursor: pointer;
+  margin-left: 4px;
+  transition: opacity 150ms ease;
+}
+
+.status-save__retry-btn:hover {
+  opacity: 0.9;
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  100% { transform: scale(1.1); opacity: 1; }
 }
 
 /* --- Imlec konumu --- */

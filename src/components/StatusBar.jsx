@@ -63,6 +63,8 @@ export default function StatusBar({
   wordTarget = 0,
   wordsToday = 0,
   lastSavedAt = null,
+  saveStatus = 'idle',
+  onRetrySave = null,
   cursor = null,
   zoom = 100,
   onZoomChange,
@@ -140,9 +142,30 @@ export default function StatusBar({
 
       {/* --- Sağ grup: kayıt, imleç, zoom --- */}
       <div className="statusbar__group statusbar__group--meta">
-        <span className={`status-save${savedLabel ? '' : ' is-none'}`} title="Otomatik kayıt">
+        <span
+          className={`status-save is-${saveStatus}${!lastSavedAt && saveStatus === 'idle' ? ' is-none' : ''}`}
+          title={saveStatus === 'error' ? 'Kayıt başarısız oldu' : 'Otomatik kayıt durumu'}
+        >
           <span className="status-save__dot" aria-hidden="true" />
-          {savedLabel ?? 'henüz kaydedilmedi'}
+          <span className="status-save__text">
+            {saveStatus === 'saving'
+              ? 'Kaydediliyor...'
+              : saveStatus === 'dirty'
+              ? 'Değişiklikler var...'
+              : saveStatus === 'error'
+              ? 'Kayıt Hatası'
+              : (savedLabel ?? 'henüz kaydedilmedi')}
+          </span>
+          {saveStatus === 'error' && onRetrySave && (
+            <button
+              type="button"
+              className="status-save__retry-btn"
+              onClick={onRetrySave}
+              title="Kaydetmeyi tekrar dene"
+            >
+              Tekrar Dene
+            </button>
+          )}
         </span>
 
         {cursor && (

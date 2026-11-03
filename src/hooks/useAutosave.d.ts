@@ -10,6 +10,8 @@ export type PersistResult = {
   error?: string;
 };
 
+export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
+
 /**
  * Options for the useAutosave hook.
  */
@@ -18,6 +20,14 @@ export interface UseAutosaveOptions {
   delay?: number;
   /** Project ID for document storage (default: 'default') */
   projectId?: string;
+  /** Optional .opscriv package path */
+  packagePath?: string;
+  /** Status change listener */
+  onStatusChange?: (status: SaveStatus) => void;
+  /** Save success listener */
+  onSaveSuccess?: (info: { docId: string; timestamp: string }) => void;
+  /** Save error listener */
+  onSaveError?: (err: Error) => void;
 }
 
 /**
@@ -58,32 +68,16 @@ declare global {
 
 /**
  * Default save function that handles document persistence.
- * Tries electronAPI.saveDocument first, then falls back to window.saveDoc,
- * and finally uses localStorage as a last resort.
- * 
- * @param docId - The document ID
- * @param content - The document content
- * @param projectId - The project ID (default: 'default')
- * @returns Promise that resolves when save is complete
  */
-export function defaultSaveFn(docId: string, content: string, projectId?: string): Promise<void>;
+export function defaultSaveFn(docId: string, content: string, projectId?: string, packagePath?: string | null): Promise<void>;
 
 /**
  * High-level save function that wraps defaultSaveFn.
- * 
- * @param docId - The document ID
- * @param content - The document content
- * @param projectId - The project ID (default: 'default')
- * @returns Promise that resolves when save is complete
  */
 export function saveDocument(docId: string, content: string, projectId?: string): Promise<void>;
 
 /**
- * React hook for automatic document saving with debounce.
- * 
- * @param doc - The document to autosave (can be null)
- * @param options - Autosave configuration options
- * @returns Object containing saveNow function for manual saves
+ * React hook for automatic document saving with debounce and true save states.
  */
 export function useAutosave(
   doc: AutosaveDocument | null,
@@ -91,9 +85,12 @@ export function useAutosave(
 ): {
   /** Manually trigger an immediate save */
   saveNow: () => Promise<void>;
+  /** Save lifecycle state */
+  saveStatus: SaveStatus;
+  /** ISO timestamp of last successful save */
+  lastSavedAt: string | null;
+  /** Error message if save failed */
+  error: string | null;
 };
 
-/**
- * Default export of the useAutosave hook.
- */
 export default useAutosave;

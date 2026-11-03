@@ -5,6 +5,8 @@ export interface StatusBarProps {
   wordTarget?: number;
   wordsToday?: number;
   lastSavedAt?: string | null;
+  saveStatus?: 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
+  onRetrySave?: (() => void) | null;
   cursor?: { line: number; column: number } | null;
   zoom?: number;
   onZoomChange?: (z: number) => void;

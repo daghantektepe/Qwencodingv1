@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 /**
  * @typedef {Object} PersistResult
@@ -7,46 +7,60 @@ import { useCallback, useRef, useEffect } from 'react';
  */
 
 /**
- * @typedef {Object} ElectronAPI
- * @property {function({projectId: string, docId: string, content: string}): Promise<PersistResult>} saveDocument
+ * @typedef {'idle' | 'dirty' | 'saving' | 'saved' | 'error'} SaveStatus
  */
 
 /**
- * defaultSaveFn - Saves document using electronAPI.saveDocument or saveDoc fallback.
- * When called with (docId, content), it triggers:
- *   electronAPI.saveDocument({ projectId: 'default', docId, content })
- * Falls back to window.saveDoc if electronAPI is not available.
+ * defaultSaveFn - Saves document using atomic native package, electronAPI.saveDocument, or saveDoc fallback.
  * 
  * @param {string} docId - The document ID
  * @param {string} content - The document content
  * @param {string} [projectId='default'] - The project ID
+ * @param {string|null} [packagePath=null] - Optional .opscriv package directory
  * @returns {Promise<void>}
  */
-export async function defaultSaveFn(docId, content, projectId = 'default') {
-  // Try electronAPI.saveDocument first
+export async function defaultSaveFn(docId, content, projectId = 'default', packagePath = null) {
+  // 1) Eğer packagePath verilmişse ve Electron IPC aktifse, atomik olarak pakete yaz
+  if (packagePath && typeof window !== 'undefined' && window.electronAPI && typeof window.electronAPI.invoke === 'function') {
+    try {
+      const res = await window.electronAPI.invoke('project:save-doc-atomic', { packagePath, docId, content });
+      if (res && res.ok === false) {
+        throw new Error(res.error || 'Atomik belge kaydetme hatası.');
+      }
+      return;
+    } catch (err) {
+      console.warn('[useAutosave] project:save-doc-atomic hatası, standart API deneniyor:', err);
+      // Fallback'e devam et
+    }
+  }
+
+  // 2) Try electronAPI.saveDocument
   if (typeof window !== 'undefined' && window.electronAPI && typeof window.electronAPI.saveDocument === 'function') {
-    await window.electronAPI.saveDocument({ projectId: projectId, docId: docId, content: content });
+    const res = await window.electronAPI.saveDocument({ projectId: projectId, docId: docId, content: content });
+    if (res && (res.ok === false || res.success === false)) {
+      throw new Error(res.error || 'Belge kaydedilemedi.');
+    }
     return;
   }
 
-  // Fallback to saveDoc
+  // 3) Fallback to window.saveDoc
   if (typeof window !== 'undefined' && typeof window.saveDoc === 'function') {
     await window.saveDoc(projectId, docId, content);
     return;
   }
 
-  // Final fallback: localStorage for web environment
+  // 4) Final fallback: localStorage for web environment
   try {
     const key = `doc:${projectId}:${docId}`;
     localStorage.setItem(key, content);
   } catch (e) {
-    console.warn('[useAutosave] Could not save document:', e);
+    console.warn('[useAutosave] Could not save document to localStorage:', e);
+    throw e;
   }
 }
 
 /**
  * saveDocument - High-level save function that wraps defaultSaveFn.
- * Supports both electronAPI.saveDocument and saveDoc.
  * 
  * @param {string} docId - The document ID
  * @param {string} content - The document content
@@ -58,39 +72,79 @@ export async function saveDocument(docId, content, projectId = 'default') {
 }
 
 /**
- * useAutosave hook - Automatically saves document content after a debounce delay.
- * Supports electronAPI.saveDocument and saveDoc.
+ * useAutosave hook - Automatically saves document content with true save contract states:
+ * 'idle' | 'dirty' | 'saving' | 'saved' | 'error'.
  * 
- * @param {{docId: string, content: string} | null} doc - The document to autosave
- * @param {{delay?: number, projectId?: string}} [options={}] - Autosave options
- * @returns {{saveNow: function(): Promise<void>}}
+ * @param {{docId?: string, id?: string, content: string} | null} doc - The document to autosave
+ * @param {{delay?: number, projectId?: string, packagePath?: string, onStatusChange?: (status: SaveStatus) => void, onSaveSuccess?: (info: { docId: string, timestamp: string }) => void, onSaveError?: (err: Error) => void}} [options={}] - Autosave options
+ * @returns {{saveNow: function(): Promise<void>, saveStatus: SaveStatus, lastSavedAt: string | null, error: string | null}}
  */
 export function useAutosave(doc, options = {}) {
-  const { delay = 1500, projectId = 'default' } = options;
+  const {
+    delay = 1500,
+    projectId = 'default',
+    packagePath = null,
+    onStatusChange,
+    onSaveSuccess,
+    onSaveError,
+  } = options;
+
+  const [saveStatus, setSaveStatus] = useState('idle');
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [error, setError] = useState(null);
+
   const timerRef = useRef(null);
-  const lastSavedRef = useRef('');
+  const lastSavedRef = useRef(doc ? doc.content : '');
+
+  const updateStatus = useCallback((status) => {
+    setSaveStatus(status);
+    if (typeof onStatusChange === 'function') {
+      try {
+        onStatusChange(status);
+      } catch (e) {
+        // ignore listener error
+      }
+    }
+  }, [onStatusChange]);
 
   const save = useCallback(async (docId, content) => {
+    if (!docId) return;
+    updateStatus('saving');
     try {
-      await defaultSaveFn(docId, content, projectId);
+      await defaultSaveFn(docId, content, projectId, packagePath);
       lastSavedRef.current = content;
-    } catch (error) {
-      console.error('[useAutosave] Save failed:', error);
+      const nowIso = new Date().toISOString();
+      setLastSavedAt(nowIso);
+      setError(null);
+      updateStatus('saved');
+      if (typeof onSaveSuccess === 'function') {
+        onSaveSuccess({ docId, timestamp: nowIso });
+      }
+    } catch (err) {
+      console.error('[useAutosave] Save failed:', err);
+      const errMsg = err?.message || 'Kaydetme hatası';
+      setError(errMsg);
+      updateStatus('error');
+      if (typeof onSaveError === 'function') {
+        onSaveError(err);
+      }
     }
-  }, [projectId]);
+  }, [projectId, packagePath, updateStatus, onSaveSuccess, onSaveError]);
+
+  const currentDocId = doc?.docId || doc?.id;
+  const currentContent = doc?.content;
 
   useEffect(() => {
-    if (!doc) return;
+    if (!currentDocId) return;
 
-    // Clear existing timer
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-
-    // Only save if content changed
-    if (doc.content !== lastSavedRef.current) {
+    // İçerik değiştiyse ve henüz kaydedilmediyse dirty durumuna geç
+    if (currentContent !== lastSavedRef.current) {
+      updateStatus('dirty');
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
       timerRef.current = setTimeout(() => {
-        save(doc.docId, doc.content);
+        save(currentDocId, currentContent);
       }, delay);
     }
 
@@ -99,17 +153,17 @@ export function useAutosave(doc, options = {}) {
         clearTimeout(timerRef.current);
       }
     };
-  }, [doc, delay, save]);
+  }, [currentDocId, currentContent, delay, save, updateStatus]);
 
   const saveNow = useCallback(async () => {
-    if (!doc) return;
+    if (!currentDocId) return;
     if (timerRef.current) {
       clearTimeout(timerRef.current);
     }
-    await save(doc.docId, doc.content);
-  }, [doc, save]);
+    await save(currentDocId, currentContent);
+  }, [currentDocId, currentContent, save]);
 
-  return { saveNow };
+  return { saveNow, saveStatus, lastSavedAt, error };
 }
 
 export default useAutosave;
