@@ -16,15 +16,30 @@ async function runSmokeTest() {
   }
 
   console.log('[SMOKE] 2/3: Gerçek Electron süreci başlatılıyor...');
-  const electronBin = process.platform === 'win32'
-    ? path.resolve(__dirname, '../node_modules/.bin/electron.cmd')
-    : path.resolve(__dirname, '../node_modules/.bin/electron');
+  
+  let electronBin;
+  const isExeMode = process.argv.includes('--exe');
+  const unpackedExe = path.resolve(__dirname, '../release-builds/win-unpacked/OpenScriv.exe');
+
+  if (isExeMode && fs.existsSync(unpackedExe)) {
+    console.log('[SMOKE] Paketlenen Windows EXE test ediliyor:', unpackedExe);
+    electronBin = unpackedExe;
+  } else if (process.platform === 'win32') {
+    const directWinBin = path.resolve(__dirname, '../node_modules/electron/dist/electron.exe');
+    electronBin = fs.existsSync(directWinBin) ? directWinBin : path.resolve(__dirname, '../node_modules/.bin/electron.cmd');
+  } else {
+    electronBin = path.resolve(__dirname, '../node_modules/.bin/electron');
+  }
 
   const appDir = path.resolve(__dirname, '..');
-  const child = spawn(electronBin, ['.', '--smoke-test'], {
+  const args = isExeMode && electronBin === unpackedExe 
+    ? ['--smoke-test', '--no-sandbox', '--disable-gpu'] 
+    : ['.', '--smoke-test', '--no-sandbox', '--disable-gpu'];
+
+  const child = spawn(electronBin, args, {
     cwd: appDir,
     stdio: 'inherit',
-    shell: true,
+    shell: false,
     env: {
       ...process.env,
       NODE_ENV: 'production',

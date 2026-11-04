@@ -98,7 +98,12 @@ function createWindow() {
   });
 
   // Renderer konsol mesajlarını terminale aktar
-  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+  mainWindow.webContents.on('console-message', (event, ...legacyArgs) => {
+    const isNew = event && typeof event === 'object' && 'message' in event;
+    const message = isNew ? event.message : legacyArgs[1];
+    const level = isNew ? event.level : legacyArgs[0];
+    const line = isNew ? event.lineNumber : legacyArgs[2];
+    const sourceId = isNew ? event.sourceId : legacyArgs[3];
     const levels = ['DEBUG', 'LOG', 'WARN', 'ERROR'];
     const lvlName = levels[level] || 'LOG';
     const srcName = sourceId ? path.basename(sourceId) : 'renderer';
@@ -139,14 +144,28 @@ function createWindow() {
 
   const isSmokeTest = process.argv.includes('--smoke-test');
   if (isSmokeTest) {
-    console.log('[SMOKE TEST] Smoke test modu aktif, pencere doğrulanıyor...');
-    mainWindow.webContents.once('did-finish-load', () => {
-      console.log('[SMOKE TEST] BrowserWindow yüklendi ve DOM hazır.');
-      setTimeout(() => {
-        console.log('[SMOKE TEST] Gerçek Electron penceresi başarıyla doğrulandı. Çıkılıyor (0).');
-        app.quit();
-        process.exit(0);
-      }, 1000);
+    console.log('[SMOKE TEST] Smoke test modu aktif, pencere ve DOM doğrulanıyor...');
+    mainWindow.webContents.once('did-finish-load', async () => {
+      try {
+        const rootChildCount = await mainWindow.webContents.executeJavaScript(
+          'document.getElementById("root") ? document.getElementById("root").children.length : 0'
+        );
+        const title = await mainWindow.webContents.executeJavaScript('document.title');
+        console.log(`[SMOKE TEST] BrowserWindow yüklendi. Başlık: "${title}", #root alt eleman sayısı: ${rootChildCount}`);
+        if (rootChildCount > 0) {
+          console.log('[SMOKE TEST] DOM başarıyla render edildi ve doğrulandı. Temiz çıkış (0).');
+          setTimeout(() => {
+            app.quit();
+            process.exit(0);
+          }, 500);
+        } else {
+          console.error('[SMOKE TEST HATA] #root boş, React arayüzü render edilemedi!');
+          process.exit(1);
+        }
+      } catch (err) {
+        console.error('[SMOKE TEST HATA] DOM doğrulama hatası:', err);
+        process.exit(1);
+      }
     });
 
     mainWindow.webContents.once('did-fail-load', (e, code, desc) => {
