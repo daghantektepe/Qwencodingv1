@@ -13,7 +13,9 @@
 
 const path = require('path');
 const fs = require('fs/promises');
-const { app, ipcMain, dialog } = require('electron');
+const electron = require('electron');
+// Düz Node'da (testler) require('electron') API değil, binary yolunu döndürür.
+const { app, ipcMain, dialog } = typeof electron === 'object' ? electron : {};
 
 // ---------------------------------------------------------------------------
 // Yardımcılar
@@ -104,20 +106,35 @@ function escapeHtml(str) {
 }
 
 /**
+ * Editör her paragrafı tek satır olarak saklar (RichText: blockSeparator '\n').
+ * Boş satırları atarak paragraf listesine çevirir.
+ */
+function splitParagraphs(text) {
+  return String(text ?? '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+/**
  * Paragrafları <p> etiketleriyle sarar.
  */
 function wrapParagraphs(text) {
-  return String(text ?? '')
-    .split(/\n\s*\n/)
-    .map((block) => {
-      const t = block.trim();
-      if (!t) return '';
+  return splitParagraphs(text)
+    .map((t) => {
       if (/^(-{3,}|_{3,})$/.test(t)) return '<hr />';
       if (t.startsWith('## ')) return `<h2>${escapeHtml(t.slice(3))}</h2>`;
-      return `<p>${escapeHtml(t).replace(/\n/g, '<br />')}</p>`;
+      return `<p>${escapeHtml(t)}</p>`;
     })
-    .filter(Boolean)
     .join('\n');
+}
+
+/**
+ * Kaydetme diyaloğunda önerilecek dosya adı: Windows'ta geçersiz karakterleri
+ * değiştirir, Türkçe harfleri korur.
+ */
+function toFileName(projectName) {
+  return String(projectName ?? '').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').trim() || 'OpenScriv';
 }
 
 /**
@@ -134,10 +151,11 @@ function compileToMarkdown(docs, projectName = 'OpenScriv Projesi', options = {}
     if (includeTitle) {
       block += `## ${doc.title}\n\n`;
     }
-    block += doc.content || '';
+    // Markdown'da tek satır sonu paragraf ayırmaz; boş satır gerekir.
+    block += splitParagraphs(doc.content).join('\n\n');
     parts.push(block);
   }
-  
+
   body += parts.join(separator);
   return body;
 }
@@ -199,7 +217,7 @@ function compileToPlainText(docs, projectName = 'OpenScriv Projesi', options = {
  *   - format: 'markdown'|'html'|'plain' (varsayılan: 'markdown')
  *   - options: { includeTitle?, separator? }
  */
-ipcMain.handle('compile:run', async (_evt, payload) => {
+ipcMain?.handle('compile:run', async (_evt, payload) => {
   try {
     const { projectId, tree, docIds, format = 'markdown', projectName = 'OpenScriv Projesi', options = {} } = payload || {};
     
@@ -239,7 +257,7 @@ ipcMain.handle('compile:run', async (_evt, payload) => {
       ok: true,
       compiled: {
         content,
-        fileName: `${sanitizeId(projectName)}${ext}`,
+        fileName: `${toFileName(projectName)}${ext}`,
         mimeType: mime,
         docCount: selectedDocs.length,
       },
@@ -254,7 +272,7 @@ ipcMain.handle('compile:run', async (_evt, payload) => {
  * save-compiled-file: Kullanıcıya Save Dialog gösterip diska yazar.
  * payload = { content, fileName, filterName?, extensions? }
  */
-ipcMain.handle('save-compiled-file', async (_evt, payload) => {
+ipcMain?.handle('save-compiled-file', async (_evt, payload) => {
   try {
     const { content, fileName, filterName = 'Tüm Dosyalar', extensions = ['*'] } = payload || {};
     
@@ -281,4 +299,7 @@ ipcMain.handle('save-compiled-file', async (_evt, payload) => {
 
 module.exports = {
   registerCompileHandlers: () => {}, // zaten yukarıda tanımlandı
+  compileToMarkdown,
+  compileToHtml,
+  toFileName,
 };

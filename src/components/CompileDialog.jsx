@@ -33,7 +33,7 @@ function collectScopeOptions(tree) {
   return options;
 }
 
-export default function CompileDialog({ open, onClose, tree, onCompile }) {
+export default function CompileDialog({ open, onClose, tree, onCompile, projectId = 'default', projectName = 'OpenScriv Projesi' }) {
   const [format, setFormat] = useState('md');
   const [scopeId, setScopeId] = useState('all');
   const [busy, setBusy] = useState(false);
@@ -65,11 +65,11 @@ export default function CompileDialog({ open, onClose, tree, onCompile }) {
       const mappedFormat = format === 'md' ? 'markdown' : format === 'txt' ? 'plain' : format;
       const docIds = scopeId && scopeId !== 'all' ? [scopeId] : undefined;
       const res = await api.compileRun({
-        projectId: 'default',
+        projectId,
         tree,
         docIds,
         format: mappedFormat,
-        projectName: 'OpenScriv Projesi',
+        projectName,
       });
       if (!res?.ok) throw new Error(res?.error || 'Derleme başarısız.');
       const saved = await api.saveCompiledFile({
@@ -98,18 +98,19 @@ export default function CompileDialog({ open, onClose, tree, onCompile }) {
       }}
     >
       <div className="compile-backdrop" onClick={onClose} aria-hidden="true" />
-      <section className="compile-card">
-        <header className="compile-head">
+      <section className="compile-dialog">
+        <header className="compile-dialog__head">
           <h2>Derle ve Dışa Aktar</h2>
-          <button type="button" className="compile-close" onClick={onClose} aria-label="Kapat">
+          <button type="button" className="compile-dialog__close" onClick={onClose} aria-label="Kapat">
             ×
           </button>
         </header>
 
-        <div className="compile-body">
+        <div className="compile-dialog__body">
           <label className="compile-field">
             <span>Dışa Aktarma Biçimi</span>
             <select
+              className="compile-select"
               value={format}
               data-testid="compile-format"
               onChange={(e) => setFormat(e.target.value)}
@@ -125,6 +126,7 @@ export default function CompileDialog({ open, onClose, tree, onCompile }) {
           <label className="compile-field">
             <span>Kapsam</span>
             <select
+              className="compile-select"
               value={scopeId}
               data-testid="compile-scope"
               onChange={(e) => setScopeId(e.target.value)}
@@ -148,7 +150,7 @@ export default function CompileDialog({ open, onClose, tree, onCompile }) {
           )}
         </div>
 
-        <footer className="compile-foot">
+        <footer className="compile-dialog__foot">
           <button type="button" className="btn btn--ghost" onClick={onClose}>
             Vazgeç
           </button>

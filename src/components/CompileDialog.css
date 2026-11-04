@@ -20,7 +20,14 @@
   to   { opacity: 1; }
 }
 
+/* Dışarı tıklayınca kapatma alanı; diyalog bunun üstünde durur */
+.compile-backdrop {
+  position: absolute;
+  inset: 0;
+}
+
 .compile-dialog {
+  position: relative;
   width: 100%;
   max-width: 560px;
   max-height: 84vh;
@@ -187,6 +194,11 @@
   font-size: var(--fs-sm, 0.82rem);
   color: var(--text-primary, #2f2b24);
   padding: 5px 0;
+}
+
+/* Sabit etiket sütunu: seçim kutuları alt alta hizalı kalsın */
+.compile-field > span {
+  flex: 0 0 150px;
 }
 
 .compile-separator {
