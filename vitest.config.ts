@@ -6,8 +6,10 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    // 'threads' bu makinede (Node 24) worker başlatamıyor; forks kararlı.
+    // 'threads' bu makinede (Node 24) worker başlatamıyor; forks + kontrollü paralellik kararlı.
     pool: 'forks',
+    maxWorkers: 2,
+    minWorkers: 1,
     setupFiles: ['./tests/setup.ts'],
     include: ['tests/**/*.{test,spec}.{js,ts,tsx}'],
   },
