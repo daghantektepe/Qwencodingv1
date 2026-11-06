@@ -105,7 +105,8 @@ function createWindow() {
     const line = isNew ? event.lineNumber : legacyArgs[2];
     const sourceId = isNew ? event.sourceId : legacyArgs[3];
     const levels = ['DEBUG', 'LOG', 'WARN', 'ERROR'];
-    const lvlName = levels[level] || 'LOG';
+    // Electron 45+ seviyeyi metin ('info' | 'warning' | 'error' | 'debug') olarak verir
+    const lvlName = typeof level === 'string' ? level.toUpperCase() : levels[level] || 'LOG';
     const srcName = sourceId ? path.basename(sourceId) : 'renderer';
     console.log(`[Renderer ${lvlName}] ${message} (${srcName}:${line})`);
   });
@@ -145,27 +146,55 @@ function createWindow() {
   const isSmokeTest = process.argv.includes('--smoke-test');
   if (isSmokeTest) {
     console.log('[SMOKE TEST] Smoke test modu aktif, pencere ve DOM doğrulanıyor...');
-    mainWindow.webContents.once('did-finish-load', async () => {
-      try {
-        const rootChildCount = await mainWindow.webContents.executeJavaScript(
-          'document.getElementById("root") ? document.getElementById("root").children.length : 0'
-        );
-        const title = await mainWindow.webContents.executeJavaScript('document.title');
-        console.log(`[SMOKE TEST] BrowserWindow yüklendi. Başlık: "${title}", #root alt eleman sayısı: ${rootChildCount}`);
-        if (rootChildCount > 0) {
-          console.log('[SMOKE TEST] DOM başarıyla render edildi ve doğrulandı. Temiz çıkış (0).');
-          setTimeout(() => {
-            app.quit();
-            process.exit(0);
-          }, 500);
-        } else {
-          console.error('[SMOKE TEST HATA] #root boş, React arayüzü render edilemedi!');
+    const smokeFatalErrors = [];
+
+    // Renderer'da yakalanmamış hata olursa pencere açılsa bile smoke başarısız sayılır
+    mainWindow.webContents.on('console-message', (event, ...legacyArgs) => {
+      const isNew = event && typeof event === 'object' && 'message' in event;
+      const message = String((isNew ? event.message : legacyArgs[1]) || '');
+      const level = isNew ? event.level : legacyArgs[0];
+      const isError = level === 'error' || level === 3;
+      if (isError && /Uncaught|ReferenceError|SyntaxError|TypeError|Minified React error/i.test(message)) {
+        const line = isNew ? event.lineNumber : legacyArgs[2];
+        const sourceId = isNew ? event.sourceId : legacyArgs[3];
+        smokeFatalErrors.push(`${message} (${sourceId || 'renderer'}:${line})`);
+      }
+    });
+
+    mainWindow.webContents.once('render-process-gone', (_event, details) => {
+      console.error('[SMOKE TEST HATA] render-process-gone:', details);
+      process.exit(1);
+    });
+
+    mainWindow.webContents.once('did-finish-load', () => {
+      // React'in mount olması ve ilk efektlerin hata fırlatabilmesi için kısa bekleme
+      setTimeout(async () => {
+        try {
+          const rootChildCount = await mainWindow.webContents.executeJavaScript(
+            'document.getElementById("root") ? document.getElementById("root").children.length : 0'
+          );
+          const title = await mainWindow.webContents.executeJavaScript('document.title');
+          console.log(`[SMOKE TEST] BrowserWindow yüklendi. Başlık: "${title}", #root alt eleman sayısı: ${rootChildCount}`);
+          if (smokeFatalErrors.length > 0) {
+            console.error(`[SMOKE TEST HATA] Yakalanmamış renderer hatası:\n  - ${smokeFatalErrors.join('\n  - ')}`);
+            process.exit(1);
+            return;
+          }
+          if (rootChildCount > 0) {
+            console.log('[SMOKE TEST] DOM başarıyla render edildi ve doğrulandı. Temiz çıkış (0).');
+            setTimeout(() => {
+              app.quit();
+              process.exit(0);
+            }, 500);
+          } else {
+            console.error('[SMOKE TEST HATA] #root boş, React arayüzü render edilemedi!');
+            process.exit(1);
+          }
+        } catch (err) {
+          console.error('[SMOKE TEST HATA] DOM doğrulama hatası:', err);
           process.exit(1);
         }
-      } catch (err) {
-        console.error('[SMOKE TEST HATA] DOM doğrulama hatası:', err);
-        process.exit(1);
-      }
+      }, 1000);
     });
 
     mainWindow.webContents.once('did-fail-load', (e, code, desc) => {
