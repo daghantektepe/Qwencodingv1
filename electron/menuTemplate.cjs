@@ -192,10 +192,6 @@ function buildMenuTemplate(mainWindow, options = {}) {
           label: 'Proje Sağlık Karnesi (Health HUD)...',
           click: () => sendAction(mainWindow, 'project:health-dashboard'),
         },
-        {
-          label: 'Yedekleme Yöneticisi...',
-          click: () => sendAction(mainWindow, 'project:backup-manager'),
-        },
       ],
     },
 

@@ -12,6 +12,7 @@ const ALLOWED_INVOKE_CHANNELS = new Set([
   'window:maximize',
   'window:toggle-maximize',
   'window:close',
+  'app:close-ready',
   'window:is-maximized',
   'window:get-state',
   'window:get-platform',
@@ -101,6 +102,7 @@ const ALLOWED_LISTEN_CHANNELS = new Set([
   'theme:changed',
   'watcher:change',
   'menu:action',
+  'app:before-close',
   'tray:quick-note-save',
 ]);
 

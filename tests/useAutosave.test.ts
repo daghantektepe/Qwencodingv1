@@ -29,6 +29,31 @@ describe('useAutosave state machine', () => {
   });
 });
 
+describe('useAutosave in-flight save (CF-07)', () => {
+  it('stays dirty while a write is in flight, and flush waits for that write', async () => {
+    let finish!: (v: any) => void;
+    const saveFn = vi.fn(() => new Promise((r) => { finish = r; }));
+    const { result } = renderHook(() => useAutosave(saveFn, { delay: 500 }));
+
+    act(() => result.current.schedule(['v1']));
+    let first!: Promise<void>;
+    act(() => { first = result.current.flush(); });
+    await act(async () => { await Promise.resolve(); });
+    expect(saveFn).toHaveBeenCalledTimes(1);
+    // pendingRef boşaltıldı ama yazma bitmedi: kapanış bunu kirli görmeli.
+    expect(result.current.isDirty()).toBe(true);
+
+    let secondDone = false;
+    const second = result.current.flush().then(() => { secondDone = true; });
+    await act(async () => { await Promise.resolve(); });
+    expect(secondDone).toBe(false);
+
+    await act(async () => { finish({ ok: true }); await first; await second; });
+    expect(secondDone).toBe(true);
+    expect(result.current.isDirty()).toBe(false);
+  });
+});
+
 describe('useAutosave - defaultSaveFn', () => {
   let saveDocument: ReturnType<typeof vi.fn>;
   let saveDoc: ReturnType<typeof vi.fn>;

@@ -74,6 +74,8 @@ export function useAutosave(saveFn, options = {}) {
   const [state, setState] = useState('idle');
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const pendingRef = useRef(undefined);
+  // Yazma sürerken de kirli say: kapanış ve proje değiştirme yarım yazmayı beklemeli.
+  const inflightRef = useRef(false);
   const timerRef = useRef(null);
   // Yazmalar sıraya alınır: aynı dosyaya eşzamanlı iki yazma olmaz.
   const chainRef = useRef(Promise.resolve());
@@ -87,6 +89,7 @@ export function useAutosave(saveFn, options = {}) {
       const value = pendingRef.current;
       pendingRef.current = undefined;
       setState('saving');
+      inflightRef.current = true;
       try {
         const res = await saveFnRef.current(value);
         if (res && res.ok === false) throw new Error(res.error || 'Kayıt başarısız');
@@ -96,6 +99,8 @@ export function useAutosave(saveFn, options = {}) {
         console.error('[useAutosave] Save failed:', error);
         if (pendingRef.current === undefined) pendingRef.current = value;
         setState('error');
+      } finally {
+        inflightRef.current = false;
       }
     });
     return chainRef.current;
@@ -108,7 +113,7 @@ export function useAutosave(saveFn, options = {}) {
     timerRef.current = setTimeout(flush, delay);
   }, [delay, flush]);
 
-  const isDirty = useCallback(() => pendingRef.current !== undefined, []);
+  const isDirty = useCallback(() => pendingRef.current !== undefined || inflightRef.current, []);
 
   useEffect(() => () => clearTimeout(timerRef.current), []);
 

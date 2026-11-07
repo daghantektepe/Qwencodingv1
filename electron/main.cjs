@@ -93,6 +93,9 @@ function createWindow() {
 
   trackWindowState(mainWindow);
 
+  // Kapanışta renderer'ın bekleyen kaydını bitirmesini bekle (CF-07)
+  require('./closeGuard.cjs').installCloseGuard(mainWindow, { ipcMain, dialog });
+
   // Beyaz ekran kalmasını önlemek için: pencere çizilmeye hazır olduğunda göster
   let isShown = false;
   const showWindow = () => {
