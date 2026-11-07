@@ -67,7 +67,6 @@ import {
   Map,
   Activity,
   PackageCheck,
-  ShieldCheck,
   Zap,
   Book,
   Users,
@@ -82,7 +81,6 @@ import CodexManager from './components/Codex/CodexManager';
 import { InteractiveMapViewer } from './components/Map/InteractiveMapViewer.tsx';
 import { ProjectHealthDashboard } from './components/Audit/ProjectHealthDashboard.tsx';
 import { BatchExportModal } from './components/Publish/BatchExportModal.tsx';
-import { BackupHistoryManager } from './components/Backup/BackupHistoryManager.tsx';
 import { NightFilterSettings } from './components/Theme/NightFilterSettings.tsx';
 import { SnippetManagerModal } from './components/Snippets/SnippetManagerModal.tsx';
 import { DictionaryLookupPopover } from './components/Dictionary/DictionaryLookupPopover.tsx';
@@ -325,7 +323,6 @@ export function App() {
   // Stüdyo Araç Modalları (Faz 88 - Faz 98)
   const [healthDashboardOpen, setHealthDashboardOpen] = useState(false);
   const [batchExportOpen, setBatchExportOpen] = useState(false);
-  const [backupManagerOpen, setBackupManagerOpen] = useState(false);
   const [nightFilterOpen, setNightFilterOpen] = useState(false);
   const [snippetsOpen, setSnippetsOpen] = useState(false);
   const [dictionaryOpen, setDictionaryOpen] = useState(false);
@@ -405,6 +402,7 @@ export function App() {
     setBusy(true);
     try {
       await flushSave(); // önceki projenin bekleyen kaydı, kendi paketine
+      if (isDirty() && !window.confirm('Son değişiklikler kaydedilemedi. Yine de başka proje açılsın mı?')) return;
       const res = await desktopBridge().readPackage({ packagePath });
       if (!res?.ok) {
         showWelcome(`Proje açılamadı: ${packagePath}\n${res?.error || ''}`);
@@ -427,7 +425,7 @@ export function App() {
     } finally {
       setBusy(false);
     }
-  }, [flushSave, setProject, showWelcome]);
+  }, [flushSave, isDirty, setProject, showWelcome]);
 
   const createProject = useCallback(async ({ name, parentDir, importLegacy }: { name: string; parentDir: string; importLegacy: boolean }) => {
     setBusy(true);
@@ -511,6 +509,16 @@ export function App() {
       }
     });
   }, [switchProject, openOtherProject, flushSave]);
+
+  // Pencere kapanırken main süreç sorar (closeGuard.cjs): bekleyen/süren kaydı bitir, sonucu bildir.
+  useEffect(() => {
+    const api = desktopBridge();
+    if (!api?.on) return undefined;
+    return api.on('app:before-close', async () => {
+      await flushSave();
+      api.invoke('app:close-ready', { ok: !isDirty() });
+    });
+  }, [flushSave, isDirty]);
 
   // Kapanışta bekleyen kaydı yaz; yazılamazsa kullanıcıya sor.
   useEffect(() => {
@@ -759,12 +767,6 @@ export function App() {
       title: 'Toplu Çoklu Format Dağıtım Kiti',
       group: 'Dışa Aktar',
       run: () => setBatchExportOpen(true),
-    },
-    {
-      id: 'open-backup-history',
-      title: 'Yedekleme Geçmişi ve Çoklu Hedef Yedekleyici',
-      group: 'Stüdyo Araçları',
-      run: () => setBackupManagerOpen(true),
     },
     {
       id: 'open-night-filter',
@@ -1372,18 +1374,6 @@ export function App() {
               </div>
 
               <div
-                onClick={() => { setToolsDrawerOpen(false); setBackupManagerOpen(true); }}
-                style={{ padding: '14px', borderRadius: '8px', border: '1px solid var(--border, #d9d4c8)', background: 'var(--bg-elevated, #fff)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '6px' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent, #7a6c4f)', fontWeight: 600 }}>
-                  <ShieldCheck size={18} /> Yedekleme Geçmişi
-                </div>
-                <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary, #6b6455)' }}>
-                  Çoklu hedefe anlık şifreli proje yedekleme ve kurtarma yöneticisi.
-                </p>
-              </div>
-
-              <div
                 onClick={() => { setToolsDrawerOpen(false); setNightFilterOpen(true); }}
                 style={{ padding: '14px', borderRadius: '8px', border: '1px solid var(--border, #d9d4c8)', background: 'var(--bg-elevated, #fff)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '6px' }}
               >
@@ -1473,17 +1463,8 @@ export function App() {
         />
       )}
 
-      {/* Yedekleme Geçmişi & Çoklu Hedef Yedekleyici Modal (Faz 93) */}
-      {backupManagerOpen && (
-        <BackupHistoryManager
-          projectName={project.name || 'OpenScriv Projesi'}
-          getCurrentProjectData={() => ({ documents: allDocuments, tree })}
-          onRestoreProject={(data) => {
-            if (data?.tree) setProject((p: any) => ({ ...p, tree: data.tree }));
-          }}
-          onClose={() => setBackupManagerOpen(false)}
-        />
-      )}
+      {/* Yedekleme Geçmişi (Faz 93) Faz 0'da gizlendi: localStorage'a yazıyor, projeler arası
+          geri yüklüyordu (CF-06). Gerçek disk yedeği gelene kadar giriş noktası yok. */}
 
       {/* Gece / Amber / OLED Siyah Filtre Ayarları Modal (Faz 90) */}
       {nightFilterOpen && (
