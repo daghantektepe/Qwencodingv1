@@ -22,6 +22,7 @@ const ipcMain = electron.ipcMain || { handle: () => {} };
 const path = require('path');
 const fs = require('fs/promises');
 const crypto = require('crypto');
+const { assertKnownPackage } = require('./projectIpc.cjs');
 
 function cleanExternalHtml(rawHtml) {
   if (!rawHtml) return '';
@@ -53,7 +54,8 @@ async function saveClipboardImageAsset(packagePath) {
     const hash = crypto.createHash('sha256').update(pngBuffer).digest('hex').slice(0, 12);
     const fileName = `img_${Date.now()}_${hash}.png`;
 
-    const assetsDir = path.join(packagePath || process.cwd(), 'assets');
+    // Yalnızca bu oturumda açılmış pakete yazılır (eskiden packagePath yoksa çalışma dizinine düşüyordu).
+    const assetsDir = path.join(assertKnownPackage(packagePath), 'assets');
     await fs.mkdir(assetsDir, { recursive: true });
 
     const targetPath = path.join(assetsDir, fileName);

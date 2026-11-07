@@ -103,18 +103,17 @@ function registerPdfIpcHandlers() {
 
   ipcMain.handle('pdf:print-vector', async (_evt, { htmlContent, presetKey, targetPath, options }) => {
     try {
-      let finalPath = targetPath;
-      if (!finalPath) {
-        const result = await dialog.showSaveDialog({
-          title: 'Matbaa Vektörel PDF Kaydet',
-          defaultPath: 'Kitap_Baski.pdf',
-          filters: [{ name: 'PDF Dosyası', extensions: ['pdf'] }],
-        });
-        if (result.canceled || !result.filePath) {
-          return { ok: false, canceled: true };
-        }
-        finalPath = result.filePath;
+      // Hedef her zaman kullanıcının kayıt penceresinden gelir; renderer'ın verdiği yol
+      // yalnızca önerilen dosya adıdır (aksi halde herhangi bir dosyanın üzerine yazılabilirdi).
+      const result = await dialog.showSaveDialog({
+        title: 'Matbaa Vektörel PDF Kaydet',
+        defaultPath: targetPath ? path.basename(String(targetPath)) : 'Kitap_Baski.pdf',
+        filters: [{ name: 'PDF Dosyası', extensions: ['pdf'] }],
+      });
+      if (result.canceled || !result.filePath) {
+        return { ok: false, canceled: true };
       }
+      const finalPath = result.filePath;
 
       const res = await renderHtmlToVectorPdf(htmlContent, presetKey, options);
       if (!res.ok) throw new Error('PDF derleme hatası');
