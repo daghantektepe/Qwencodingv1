@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import DocumentDiffViewer from './Diff/DocumentDiffViewer';
+import { docToHtml, htmlForPlainEdit } from './RichText.jsx';
 import './Snapshots.css';
 
 /**
@@ -12,10 +13,11 @@ import './Snapshots.css';
  *  4) Snapshot siler (IPC: snapshot-delete) ve önizleme yapar (IPC: snapshot-load)
  *
  * props:
- *   document: { id, title, content } | null — aktif doküman
+ *   document: { id, title, content, contentHtml? } | null — aktif doküman
  *   projectId: string — proje kimliği (snapshot klasörlemesi için)
- *   onRestore: (docId, restoredContent, snapshotMeta) => void
- *        — geri yüklemede App/Editör'e içeriği teslim eder.
+ *   onRestore: (docId, restoredContent, { timestamp, title, html? }) => void
+ *        — geri yüklemede App/Editör'e içeriği teslim eder. html yoksa (eski,
+ *          yalnız düz metinli sürüm) editör düz metinden kurulur.
  */
 
 // Electron API köprüsü (preload.js'ten gelir). Tarayıcıda test için localStorage fallback.
@@ -53,7 +55,7 @@ function lsKey(projectId, docId) {
   return `openscriv:snapshots:${projectId}:${docId}`;
 }
 
-function localStorageSnapshotOps(channel, { projectId, docId, timestamp, content, title, note }) {
+function localStorageSnapshotOps(channel, { projectId, docId, timestamp, content, contentHtml, title, note }) {
   const readAll = () => {
     try {
       const raw = localStorage.getItem(lsKey(projectId, docId));
@@ -76,15 +78,16 @@ function localStorageSnapshotOps(channel, { projectId, docId, timestamp, content
         timestamp: ts,
         size: (content || '').length,
         content: content || '',
+        ...(typeof contentHtml === 'string' ? { contentHtml } : {}),
       };
       const list = readAll();
       list.unshift(entry);
       writeAll(list.slice(0, 50));
-      const { content: _omit, ...meta } = entry;
+      const { content: _omit, contentHtml: _omitHtml, ...meta } = entry;
       return { ok: true, snapshot: meta };
     }
     case 'snapshot-list': {
-      const list = readAll().map(({ content: _c, ...meta }) => meta);
+      const list = readAll().map(({ content: _c, contentHtml: _h, ...meta }) => meta);
       return { ok: true, snapshots: list };
     }
     case 'snapshot-load': {
@@ -158,6 +161,7 @@ export default function Snapshots({ document = null, projectId = 'default', onRe
         projectId,
         docId: document.id,
         content: document.content || '',
+        contentHtml: document.contentHtml,
         note: noteInput.trim(),
       });
       if (res?.ok) {
@@ -237,6 +241,7 @@ export default function Snapshots({ document = null, projectId = 'default', onRe
             onRestore(document.id, res.snapshot.content || '', {
               timestamp: snap.timestamp,
               title: snap.title,
+              html: res.snapshot.contentHtml,
             });
           }
           setMessage({ type: 'ok', text: `Geri yüklendi: "${snap.title}" ✓` });
@@ -448,6 +453,8 @@ export default function Snapshots({ document = null, projectId = 'default', onRe
                       onRestore(document.id, restoredFullText, {
                         timestamp: diffSnapshot.timestamp,
                         title: `Seçmeli Geri Alma (${diffSnapshot.title})`,
+                        // Yalnız değişen satırlar düzleşir; belgenin geri kalanı biçimini korur.
+                        html: htmlForPlainEdit(docToHtml(document), restoredFullText),
                       });
                     }
                     setMessage({ type: 'ok', text: 'Seçilen paragraf geri yüklendi ✓' });

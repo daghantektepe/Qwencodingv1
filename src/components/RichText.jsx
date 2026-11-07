@@ -1,6 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
-import { Extension } from '@tiptap/core';
+import {
+  Extension,
+  createDocument,
+  getSchema,
+  getHTMLFromFragment,
+  getTextBetween,
+  getTextSerializersFromSchema,
+} from '@tiptap/core';
+import { Fragment, Slice } from '@tiptap/pm/model';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import {
@@ -14,6 +22,7 @@ import {
   Undo2,
   Redo2,
 } from 'lucide-react';
+import { computeLcsDiff } from '../services/diff/textDiffEngine';
 import './RichText.css';
 
 /**
@@ -39,6 +48,75 @@ export function plainToHtml(text) {
 
 export function docToHtml(doc) {
   return doc?.contentHtml ?? plainToHtml(doc?.content);
+}
+
+// Editörün şeması (Placeholder/TabKey şemaya düğüm eklemez).
+let schemaCache = null;
+const schema = () => (schemaCache ??= getSchema([StarterKit]));
+
+/**
+ * Düz metin üzerinde yapılmış bir düzenlemeyi (ör. paragraf geri alma) zengin metne uygular.
+ * Metni değişmeyen üst düzey bloklar biçimiyle aynen kalır; değişen ve yeni satırlar düz paragraf olur.
+ * Satırlar editörün getText({ blockSeparator: '\n' }) çıktısıyla birebir eşlenir.
+ * ponytail: değişen bloğun satır içi biçimi düşer; blok içi eşleme gerekirse buradan büyütülür.
+ */
+export function htmlForPlainEdit(html, nextText) {
+  const s = schema();
+  const doc = createDocument(html, s);
+  const opts = { blockSeparator: '\n', textSerializers: getTextSerializersFromSchema(s) };
+  const blocks = [];
+  const oldLines = [];
+  const lineBlock = [];
+  doc.forEach((node, pos, i) => {
+    const lines = getTextBetween(doc, { from: pos, to: pos + node.nodeSize }, opts).split('\n');
+    blocks.push({ node, first: oldLines.length, count: lines.length });
+    for (const line of lines) {
+      oldLines.push(line);
+      lineBlock.push(i);
+    }
+  });
+  const ops = computeLcsDiff(oldLines, String(nextText ?? '').split('\n'));
+
+  // Blok, bütün satırları araya ekleme/silme girmeden 'equal' kaldıysa korunur.
+  const hits = blocks.map(() => []);
+  let o = 0;
+  ops.forEach((op, k) => {
+    if (op.type === 'equal') hits[lineBlock[o]].push(k);
+    if (op.type !== 'insert') o += 1;
+  });
+  const kept = blocks.map(
+    (b, i) => hits[i].length === b.count && hits[i][b.count - 1] - hits[i][0] === b.count - 1
+  );
+
+  let out = '';
+  o = 0;
+  for (const op of ops) {
+    if (op.type === 'insert') {
+      out += plainToHtml(op.item);
+      continue;
+    }
+    const b = lineBlock[o];
+    if (op.type === 'equal') {
+      if (!kept[b]) out += plainToHtml(op.item);
+      else if (blocks[b].first === o) out += getHTMLFromFragment(Fragment.from(blocks[b].node), s);
+    }
+    o += 1;
+  }
+  return out;
+}
+
+// Metni son metin bloğunun sonuna ekler (düz metindeki `content + text` karşılığı); biçim korunur.
+export function appendInlineText(html, text) {
+  if (!text) return html;
+  const s = schema();
+  const doc = createDocument(html, s);
+  let end = -1;
+  doc.descendants((node, pos) => {
+    if (node.isTextblock) end = pos + node.nodeSize - 1;
+  });
+  if (end < 0) return html + plainToHtml(text);
+  const next = doc.replace(end, end, new Slice(Fragment.from(s.text(text)), 0, 0));
+  return getHTMLFromFragment(next.content, s);
 }
 
 // Tab: listede girinti, metinde sekme karakteri (odak editörden kaçmasın).
