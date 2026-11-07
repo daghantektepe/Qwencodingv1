@@ -54,8 +54,8 @@ function fmtDate(v) {
 export default function Inspector({
   node = undefined,
   doc: docProp = undefined,
-  onUpdateMetadata = (..._args) => {},
-  onUpdateDoc = (..._args) => {},
+  onUpdateMetadata = undefined,
+  onUpdateDoc = undefined,
   ariaLabel = 'Bilgi paneli',
   statuses = DEFAULT_STATUSES,
 }) {

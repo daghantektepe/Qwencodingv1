@@ -3,6 +3,7 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import Binder from './components/Binder.jsx';
 // @ts-ignore
 import Editor from './components/Editor.jsx';
+import { appendInlineText, docToHtml, plainToHtml } from './components/RichText.jsx';
 // @ts-ignore
 import Corkboard from './components/Corkboard.jsx';
 // @ts-ignore
@@ -606,15 +607,20 @@ export function App() {
     updateMetadata(nodeId, { synopsis: newSynopsis });
   }, [updateMetadata]);
 
-  const handleRestoreSnapshot = useCallback((docId: string, restoredContent: string) => {
-    updateDocContent(docId, restoredContent);
+  // Sürümde html yoksa (eski sürüm) düz metne düşülür.
+  const handleRestoreSnapshot = useCallback((docId: string, restoredContent: string, meta?: { html?: string }) => {
+    updateDocContent(docId, restoredContent, meta?.html);
   }, [updateDocContent]);
 
+  // Not, mevcut zengin metnin sonuna yeni paragraflar olarak eklenir; biçim korunur.
   const handleSendToDraft = useCallback((_noteId: string, text: string) => {
     if (!activeDoc) return;
-    const separator = activeDoc.content ? '\n\n---\n' : '';
-    const updated = (activeDoc.content || '') + separator + text;
-    updateDocContent(activeDoc.id, updated);
+    if (!activeDoc.content) {
+      updateDocContent(activeDoc.id, text, plainToHtml(text));
+      return;
+    }
+    const tail = '\n---\n' + text;
+    updateDocContent(activeDoc.id, activeDoc.content + '\n' + tail, docToHtml(activeDoc) + plainToHtml(tail));
   }, [activeDoc, updateDocContent]);
 
   const handleZoomChange = useCallback((newZoom: number) => {
@@ -1242,6 +1248,7 @@ export function App() {
         <div style={{ flex: 1, overflow: 'auto' }}>
           {inspectorTab === 'metadata' && (
             <Inspector
+              key={activeNode?.id}
               node={activeNode}
               onUpdateMetadata={updateMetadata}
               ariaLabel=""
@@ -1506,7 +1513,7 @@ export function App() {
           onSelectSynonym={(syn) => {
             if (activeDoc) {
               const updated = (activeDoc.content || '') + ' ' + syn;
-              updateDocContent(activeDoc.id, updated);
+              updateDocContent(activeDoc.id, updated, appendInlineText(docToHtml(activeDoc), ' ' + syn));
             }
             setDictionaryOpen(false);
           }}

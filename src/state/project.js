@@ -50,6 +50,11 @@ function normalizeMeta(meta) {
     labels: Array.isArray(meta?.labels) ? meta.labels.filter(Boolean) : [],
     status: typeof meta?.status === 'string' && meta.status ? meta.status : 'Taslak',
     keywords: Array.isArray(meta?.keywords) ? meta.keywords.filter(Boolean) : [],
+    // Denetçi alanları: yalnızca varsa taşınır (eski projelerde yoktur).
+    ...(Number.isFinite(meta?.wordTarget) ? { wordTarget: Math.max(0, meta.wordTarget) } : {}),
+    ...(typeof meta?.notes === 'string' ? { notes: meta.notes } : {}),
+    ...(meta?.created ? { created: meta.created } : {}),
+    ...(meta?.modified ? { modified: meta.modified } : {}),
   };
 }
 

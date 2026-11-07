@@ -112,11 +112,12 @@ async function writeIndex(projectId, docId, entries) {
  * @param {string} payload.projectId
  * @param {string} payload.docId
  * @param {string} payload.content - dokümanın tam metni
+ * @param {string} [payload.contentHtml] - editörün zengin metni (biçim korunur)
  * @param {string} [payload.title] - opsiyonel başlık
  * @param {string} [payload.note] - kullanıcı notu
  * @returns {Promise<{ ok: boolean, snapshot?: Object, error?: string }>}
  */
-async function createSnapshot({ projectId, docId, content, title = '', note = '' }) {
+async function createSnapshot({ projectId, docId, content, contentHtml, title = '', note = '' }) {
   try {
     if (!projectId || !docId) {
       throw new Error('createSnapshot: projectId ve docId zorunludur.');
@@ -136,6 +137,7 @@ async function createSnapshot({ projectId, docId, content, title = '', note = ''
       timestamp,
       size,
       content, // tam içerik
+      ...(typeof contentHtml === 'string' ? { contentHtml } : {}),
     };
 
     // Dosyaya yaz
@@ -170,7 +172,7 @@ async function createSnapshot({ projectId, docId, content, title = '', note = ''
     await writeIndex(projectId, docId, entries);
 
     // Büyük içeriği IPC üzerinden geri gönderme
-    const { content: _omit, ...metaOnly } = snapshot;
+    const { content: _omit, contentHtml: _omitHtml, ...metaOnly } = snapshot;
     return { ok: true, snapshot: metaOnly };
   } catch (err) {
     console.error('[snapshots] createSnapshot hatası:', err);
