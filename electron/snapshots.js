@@ -48,6 +48,8 @@ function getIndexFilePath(projectId, docId) {
  * Tek bir snapshot dosyasının yolu.
  */
 function getSnapshotFilePath(projectId, docId, timestamp) {
+  // Yalnızca rakam: '../' gibi değerler snapshot klasörünün dışına çıkamasın.
+  if (!/^\d+$/.test(String(timestamp))) throw new Error('Geçersiz snapshot zaman damgası.');
   return path.join(getDocSnapshotDir(projectId, docId), `${timestamp}.json`);
 }
 
@@ -157,9 +159,8 @@ async function createSnapshot({ projectId, docId, content, title = '', note = ''
     if (entries.length > 50) {
       const toDelete = entries.slice(50);
       for (const entry of toDelete) {
-        const p = getSnapshotFilePath(projectId, docId, entry.timestamp);
         try {
-          await fs.unlink(p);
+          await fs.unlink(getSnapshotFilePath(projectId, docId, entry.timestamp));
         } catch {
           /* dosya zaten yoksa sorun değil */
         }

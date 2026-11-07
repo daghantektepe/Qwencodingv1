@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs/promises');
 
@@ -11,6 +11,29 @@ try {
 }
 
 let mainWindow;
+
+// Tek örnek kilidi: ikinci açılış aynı pakete ikinci bir süreçten yazmasın.
+// Smoke test, açık bir geliştirme örneğinin yanında çalıştığı için kilit almaz.
+if (!process.argv.includes('--smoke-test') && !app.requestSingleInstanceLock()) {
+  app.quit();
+  return;
+}
+
+app.on('second-instance', () => {
+  if (app.isReady()) showMainWindow();
+});
+
+// Gezinme koruması: bırakılan dosya/link veya window.open uygulamanın yerine geçmesin
+// (preload köprüsü her yüklenen sayfaya verilir).
+app.on('web-contents-created', (_event, contents) => {
+  contents.on('will-navigate', (event, url) => {
+    if (url !== contents.getURL()) event.preventDefault();
+  });
+  contents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
+});
 
 // --- Yerel proje dizini ayarlari ---
 // Uygulama verileri tamamen kullanicinin makinesinde kalir (bulut/hesap yok).
@@ -176,7 +199,24 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+    // Gizli hızlı not penceresi açık kalırsa 'window-all-closed' hiç tetiklenmez.
+    try {
+      require('./systemTray.cjs').destroyQuickNoteWindow();
+    } catch {
+      // ignore
+    }
   });
+}
+
+// Ana pencereyi öne getirir; kapatılmışsa yeniden oluşturur (tepsi ve ikinci açılış).
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
 }
 
 app.whenReady().then(() => {
@@ -380,8 +420,8 @@ app.whenReady().then(() => {
   // 9) Sistem Tepsisi ve Global Kısayol Modülü (Faz 106)
   try {
     const { initSystemTray, registerTrayIpcHandlers } = require('./systemTray.cjs');
-    initSystemTray(mainWindow);
-    registerTrayIpcHandlers(mainWindow);
+    initSystemTray(showMainWindow);
+    registerTrayIpcHandlers(() => mainWindow);
   } catch (err) {
     console.error('[main] systemTray.cjs yuklenemedi:', err);
   }

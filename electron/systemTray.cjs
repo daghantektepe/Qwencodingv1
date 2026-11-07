@@ -31,7 +31,7 @@ function createDummyIcon() {
   return getTrayIcon();
 }
 
-function createQuickNoteWindow(parentWindow = null) {
+function createQuickNoteWindow() {
   if (quickNoteWindow && !quickNoteWindow.isDestroyed()) {
     quickNoteWindow.show();
     quickNoteWindow.focus();
@@ -80,7 +80,8 @@ function createQuickNoteWindow(parentWindow = null) {
   return quickNoteWindow;
 }
 
-function initSystemTray(mainWindow) {
+// showMainWindow: ana pencereyi bulur ya da yeniden oluşturur (kapatılmış pencere nesnesi tutulmaz).
+function initSystemTray(showMainWindow) {
   try {
     if (trayInstance && !trayInstance.isDestroyed()) {
       return trayInstance;
@@ -95,17 +96,12 @@ function initSystemTray(mainWindow) {
     const contextMenu = Menu.buildFromTemplate([
       {
         label: 'OpenScriv’i Aç',
-        click: () => {
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.show();
-            mainWindow.focus();
-          }
-        },
+        click: () => showMainWindow(),
       },
       {
         label: 'Hızlı Not Al (Ctrl+Alt+S)',
         click: () => {
-          createQuickNoteWindow(mainWindow);
+          createQuickNoteWindow();
         },
       },
       { type: 'separator' },
@@ -116,17 +112,12 @@ function initSystemTray(mainWindow) {
     ]);
 
     trayInstance.setContextMenu(contextMenu);
-    trayInstance.on('double-click', () => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.show();
-        mainWindow.focus();
-      }
-    });
+    trayInstance.on('double-click', () => showMainWindow());
 
     // Global kısayol: Ctrl+Alt+S / Cmd+Option+S
     try {
       globalShortcut.register('CommandOrControl+Alt+S', () => {
-        createQuickNoteWindow(mainWindow);
+        createQuickNoteWindow();
       });
     } catch (scErr) {
       console.warn('[systemTray] Global shortcut kaydedilemedi:', scErr.message);
@@ -139,13 +130,13 @@ function initSystemTray(mainWindow) {
   }
 }
 
-function registerTrayIpcHandlers(mainWindow) {
+function registerTrayIpcHandlers(getMainWindow) {
   ipcMain.handle('tray:toggle-quick-note', () => {
     if (quickNoteWindow && !quickNoteWindow.isDestroyed() && quickNoteWindow.isVisible()) {
       quickNoteWindow.hide();
       return { visible: false };
     }
-    createQuickNoteWindow(mainWindow);
+    createQuickNoteWindow();
     return { visible: true };
   });
 
@@ -155,6 +146,25 @@ function registerTrayIpcHandlers(mainWindow) {
     }
     return { ok: true };
   });
+
+  // Hızlı not projeye dokunmaz: ana pencereye iletilir, orada karalama defterine eklenir.
+  ipcMain.handle('tray:quick-note-save', (_event, note) => {
+    const text = typeof note?.text === 'string' ? note.text.trim() : '';
+    const win = getMainWindow();
+    if (!text || !win || win.isDestroyed()) return { ok: false };
+    win.webContents.send('tray:quick-note-save', {
+      text,
+      category: String(note.category || ''),
+      createdAt: String(note.createdAt || new Date().toISOString()),
+    });
+    return { ok: true };
+  });
+}
+
+// Ana pencere kapanınca çağrılır: gizli pencere uygulamanın kapanmasını engellemesin.
+function destroyQuickNoteWindow() {
+  if (quickNoteWindow && !quickNoteWindow.isDestroyed()) quickNoteWindow.destroy();
+  quickNoteWindow = null;
 }
 
 function destroyTray() {
@@ -164,10 +174,7 @@ function destroyTray() {
       trayInstance.destroy();
       trayInstance = null;
     }
-    if (quickNoteWindow && !quickNoteWindow.isDestroyed()) {
-      quickNoteWindow.destroy();
-      quickNoteWindow = null;
-    }
+    destroyQuickNoteWindow();
   } catch {
     // ignore
   }
@@ -177,5 +184,6 @@ module.exports = {
   initSystemTray,
   createQuickNoteWindow,
   registerTrayIpcHandlers,
+  destroyQuickNoteWindow,
   destroyTray,
 };

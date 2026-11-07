@@ -37,6 +37,18 @@ function assertPathWithinRoot(targetPath, rootDir) {
   return resolvedTarget;
 }
 
+// Bu oturumda oluşturulan ya da manifest'i okunarak açılan paketler. Yazma kanalları yalnızca
+// bunlara yazar: renderer'ın verdiği yol kendi kökü sayılsaydı yol denetimi hiçbir şeyi engellemezdi.
+const knownPackages = new Set();
+
+function assertKnownPackage(packagePath) {
+  const resolved = path.resolve(String(packagePath || ''));
+  if (!packagePath || !knownPackages.has(resolved)) {
+    throw new Error('Bu proje bu oturumda açılmadı; yazma reddedildi.');
+  }
+  return resolved;
+}
+
 async function ensureDir(dirPath) {
   await fs.mkdir(dirPath, { recursive: true });
 }
@@ -161,6 +173,7 @@ function registerProjectIpcHandlers() {
       await writeAtomic(path.join(packagePath, 'binder.json'), binderStr);
       // manifest en son yazılır: manifest'i olan klasör tam bir pakettir.
       await writeAtomic(path.join(packagePath, 'manifest.json'), JSON.stringify(manifest, null, 2));
+      knownPackages.add(packagePath);
 
       return { ok: true, packagePath, manifest };
     } catch (err) {
@@ -204,6 +217,8 @@ function registerProjectIpcHandlers() {
       // Diskteki hâli önbelleğe al: açılıştan sonra yalnızca değişen belgeler yazılır.
       writtenDocs.set(resolvedPackage, new Map(splitTree(tree).docs.map((d) => [sanitizeDocId(d.id), `${d.content}\u0000${d.contentHtml ?? ''}`])));
 
+      knownPackages.add(resolvedPackage);
+
       return { ok: true, packagePath: resolvedPackage, manifest, tree, binder, documents: texts };
     } catch (err) {
       return { ok: false, error: err.message };
@@ -214,7 +229,7 @@ function registerProjectIpcHandlers() {
   ipcMain.handle('project:save-package', async (_event, { packagePath, name, tree } = {}) => {
     try {
       if (!packagePath || !Array.isArray(tree)) throw new Error('packagePath ve tree zorunludur.');
-      const resolvedPackage = path.resolve(packagePath);
+      const resolvedPackage = assertKnownPackage(packagePath);
       const { manifestPath, manifest } = await readManifest(resolvedPackage);
 
       const { binder, docs } = splitTree(tree);
@@ -238,7 +253,7 @@ function registerProjectIpcHandlers() {
     try {
       if (!packagePath || !docId) throw new Error('packagePath ve docId zorunludur.');
 
-      const resolvedPackage = path.resolve(packagePath);
+      const resolvedPackage = assertKnownPackage(packagePath);
       const safeId = sanitizeDocId(docId);
       if (!safeId) throw new Error('Geçersiz docId.');
 
@@ -266,7 +281,7 @@ function registerProjectIpcHandlers() {
     try {
       if (!packagePath || !binder) throw new Error('packagePath ve binder zorunludur.');
 
-      const resolvedPackage = path.resolve(packagePath);
+      const resolvedPackage = assertKnownPackage(packagePath);
       const binderPath = assertPathWithinRoot(path.join(resolvedPackage, 'binder.json'), resolvedPackage);
       const binderStr = JSON.stringify(binder, null, 2);
       await writeAtomic(binderPath, binderStr);
@@ -297,4 +312,5 @@ module.exports = {
   sanitizeFileName,
   sanitizeDocId,
   assertPathWithinRoot,
+  assertKnownPackage,
 };

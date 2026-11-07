@@ -36,6 +36,8 @@ export const QuickNotePopup: React.FC<QuickNotePopupProps> = ({ onSave, onClose 
     if (onSave) {
       onSave(note);
     }
+    // Pencere yalnızca gizlenir; yeniden açıldığında aynı not tekrar kaydedilmesin.
+    setText('');
 
     // Pencereler arası bildirim yayınla
     WindowBridge.broadcast('quick-note:created', note);

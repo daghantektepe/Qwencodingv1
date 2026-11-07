@@ -61,6 +61,8 @@ function getCrashRecoveryPath(projectId) {
 }
 
 function getBackupFilePath(projectId, timestamp) {
+  // Yalnızca rakam: '../' gibi değerler yedek klasörünün dışına çıkamasın.
+  if (!/^\d+$/.test(String(timestamp))) throw new Error('Geçersiz yedek zaman damgası.');
   return path.join(getProjectBackupDir(projectId), `backup-${timestamp}.json`);
 }
 

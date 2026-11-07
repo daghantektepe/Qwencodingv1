@@ -369,6 +369,30 @@ export function App() {
     } catch {}
   }, []);
 
+  // Hızlı not penceresinden (Ctrl+Alt+S) gelen not karalama defterine eklenir; proje ağacına dokunulmaz.
+  useEffect(() => {
+    const api = desktopBridge();
+    if (!api?.on) return undefined;
+    return api.on('tray:quick-note-save', (_e: unknown, note: { text?: string; category?: string; createdAt?: string }) => {
+      if (!note?.text) return;
+      setScratchpadNotes((prev) => {
+        const next = [
+          {
+            id: `n-quick-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+            text: note.category ? `[${note.category}] ${note.text}` : note.text,
+            color: 'yellow',
+            updated: note.createdAt || new Date().toISOString(),
+          },
+          ...prev,
+        ];
+        try {
+          window.localStorage.setItem('openscriv:scratchpad:v1', JSON.stringify(next));
+        } catch {}
+        return next;
+      });
+    });
+  }, []);
+
   // Açık sekmeler (TabBar)
   const [openTabs, setOpenTabs] = useState<{ id: string; title: string; dirty?: boolean }[]>(() => [
     { id: 'doc-chapter-1', title: 'Bölüm 1: Başlangıç' },

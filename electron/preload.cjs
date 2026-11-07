@@ -40,6 +40,7 @@ const ALLOWED_INVOKE_CHANNELS = new Set([
   // Tray & Multi-Window events
   'tray:toggle-quick-note',
   'tray:hide-quick-note',
+  'tray:quick-note-save',
   'window:broadcast-event',
 
   // Updater
