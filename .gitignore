@@ -5,3 +5,6 @@ dist-electron/
 *.log
 snippet_*.txt
 release-builds/
+__pycache__/
+*.pyc
+

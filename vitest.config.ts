@@ -8,6 +8,10 @@ export default defineConfig({
     globals: true,
     // 'threads' bu makinede (Node 24) worker başlatamıyor; forks kararlı.
     pool: 'forks',
+    maxWorkers: 4,
+    minWorkers: 1,
+    testTimeout: 20000,
+    hookTimeout: 20000,
     setupFiles: ['./tests/setup.ts'],
     include: ['tests/**/*.{test,spec}.{js,ts,tsx}'],
   },

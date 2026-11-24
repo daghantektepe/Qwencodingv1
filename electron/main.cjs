@@ -123,6 +123,9 @@ function createWindow() {
     }
   });
 
+  const isSmokeTest = process.argv.includes('--smoke-test');
+  const smokeFatalErrors = [];
+
   // Renderer konsol mesajlarını terminale aktar
   mainWindow.webContents.on('console-message', (event, ...legacyArgs) => {
     const isNew = event && typeof event === 'object' && 'message' in event;
@@ -134,6 +137,9 @@ function createWindow() {
     const lvlName = levels[level] || 'LOG';
     const srcName = sourceId ? path.basename(sourceId) : 'renderer';
     console.log(`[Renderer ${lvlName}] ${message} (${srcName}:${line})`);
+    if (isSmokeTest && lvlName === 'ERROR') {
+      smokeFatalErrors.push(message);
+    }
   });
 
   // Sayfa yükleme hatasını yakala ve kurtar
@@ -168,24 +174,23 @@ function createWindow() {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
 
-  const isSmokeTest = process.argv.includes('--smoke-test');
   if (isSmokeTest) {
     console.log('[SMOKE TEST] Smoke test modu aktif, pencere ve DOM doğrulanıyor...');
     mainWindow.webContents.once('did-finish-load', async () => {
       try {
         const rootChildCount = await mainWindow.webContents.executeJavaScript(
-          'document.getElementById("root") ? document.getElementById("root").children.length : 0'
+          "(document.querySelector('#root') || document.getElementById('root')) ? (document.querySelector('#root') || document.getElementById('root')).children.length : 0"
         );
         const title = await mainWindow.webContents.executeJavaScript('document.title');
         console.log(`[SMOKE TEST] BrowserWindow yüklendi. Başlık: "${title}", #root alt eleman sayısı: ${rootChildCount}`);
-        if (rootChildCount > 0) {
+        if (rootChildCount > 0 && smokeFatalErrors.length === 0) {
           console.log('[SMOKE TEST] DOM başarıyla render edildi ve doğrulandı. Temiz çıkış (0).');
           setTimeout(() => {
             app.quit();
             process.exit(0);
           }, 500);
         } else {
-          console.error('[SMOKE TEST HATA] #root boş, React arayüzü render edilemedi!');
+          console.error('[SMOKE TEST HATA] #root boş veya ölümcül konsol hatası var:', smokeFatalErrors);
           process.exit(1);
         }
       } catch (err) {

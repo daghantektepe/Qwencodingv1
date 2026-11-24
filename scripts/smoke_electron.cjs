@@ -36,15 +36,18 @@ async function runSmokeTest() {
     ? ['--smoke-test', '--no-sandbox', '--disable-gpu'] 
     : ['.', '--smoke-test', '--no-sandbox', '--disable-gpu'];
 
+  const childEnv = {
+    ...process.env,
+    NODE_ENV: 'production',
+    ELECTRON_ENABLE_LOGGING: '1',
+  };
+  delete childEnv.ELECTRON_RUN_AS_NODE;
+
   const child = spawn(electronBin, args, {
     cwd: appDir,
     stdio: 'inherit',
     shell: false,
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-      ELECTRON_ENABLE_LOGGING: '1',
-    },
+    env: childEnv,
   });
 
   const timeoutTimer = setTimeout(() => {
