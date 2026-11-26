@@ -1,0 +1,71 @@
+.custom-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  background-color: #2d2d2d;
+  color: #ffffff;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.mac-traffic-lights {
+  display: flex;
+  gap: 8px;
+  padding-left: 12px;
+}
+
+.light {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.light.close {
+  background-color: #ff5f57;
+}
+
+.light.minimize {
+  background-color: #febc2e;
+}
+
+.light.maximize {
+  background-color: #28c840;
+}
+
+.titlebar-controls {
+  display: flex;
+  gap: 4px;
+  padding-right: 8px;
+}
+
+.control-btn {
+  background: none;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 12px;
+}
+
+.control-btn:hover {
+  background-color: #444444;
+}
+
+.titlebar-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.dirty-indicator {
+  color: #ff5f57;
+  font-size: 10px;
+}

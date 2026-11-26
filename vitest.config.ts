@@ -1,18 +1,21 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
     globals: true,
-    // 'threads' bu makinede (Node 24) worker başlatamıyor; forks kararlı.
-    pool: 'forks',
-    maxWorkers: 4,
-    minWorkers: 1,
-    testTimeout: 20000,
-    hookTimeout: 20000,
     setupFiles: ['./tests/setup.ts'],
-    include: ['tests/**/*.{test,spec}.{js,ts,tsx}'],
+    css: false,
+    transformMode: {
+      web: [/\.[jt]sx$/],
+    },
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
   },
 });
